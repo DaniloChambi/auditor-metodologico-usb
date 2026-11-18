@@ -7,7 +7,12 @@ const crypto = require('node:crypto');
 
 const ROOT_DIR = __dirname;
 const PORT = Number(process.env.PORT) || 3000;
-const DEFAULT_MODEL = 'gemini-3.8-flash';
+const MODEL_FALLBACK_CHAIN = [
+  'gemini-3.8-flash',
+  'gemini-4-hydrogen',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite'
+];
 const INTERACTIONS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 const API_REVISION = '2026-05-20';
 
@@ -86,6 +91,15 @@ const sanitizeApiKey = (rawKey) => {
   if (!cleaned) return '';
   if (PLACEHOLDER_KEYS.has(cleaned.toLowerCase())) return '';
   return cleaned;
+};
+
+const getModelChain = () => {
+  const customRaw = getEnv('GEMINI_MODELS') || getEnv('GEMINI_MODEL');
+  const customModels = customRaw
+    .split(/[,;\r\n]+/)
+    .map((m) => m.trim().replace(/^["'`]+|["'`]+$/g, ''))
+    .filter(Boolean);
+  return Array.from(new Set([...customModels, ...MODEL_FALLBACK_CHAIN]));
 };
 
 const getApiKeysPool = () => {
@@ -315,7 +329,7 @@ const handleEvaluate = async (req, res) => {
     return;
   }
 
-  const modelName = getEnv('GEMINI_MODEL', DEFAULT_MODEL);
+  const modelChain = getModelChain();
   const userPromptText = buildUserPrompt(cleanData);
 
   const requiredSchemaFields = [
@@ -328,37 +342,40 @@ const handleEvaluate = async (req, res) => {
     'approved'
   ];
 
-  const interactionsPayload = {
-    model: modelName,
-    system_instruction: SYSTEM_INSTRUCTION,
-    input: userPromptText,
-    generation_config: {
-      thinking_level: 'low'
-    },
-    response_format: {
-      type: 'text',
-      mime_type: 'application/json',
-      schema: {
-        type: 'object',
-        properties: {
-          total_score: { type: 'integer' },
-          block1_score: { type: 'integer' },
-          block1_feedback: { type: 'string' },
-          block2_score: { type: 'integer' },
-          block2_feedback: { type: 'string' },
-          block3_score: { type: 'integer' },
-          block3_feedback: { type: 'string' },
-          block4_score: { type: 'integer' },
-          block4_feedback: { type: 'string' },
-          critical_fixes_needed: {
-            type: 'array',
-            items: { type: 'string' }
+  const buildInteractionsPayload = (modelName) => {
+    const body = {
+      model: modelName,
+      system_instruction: SYSTEM_INSTRUCTION,
+      input: userPromptText,
+      response_format: {
+        type: 'text',
+        mime_type: 'application/json',
+        schema: {
+          type: 'object',
+          properties: {
+            total_score: { type: 'integer' },
+            block1_score: { type: 'integer' },
+            block1_feedback: { type: 'string' },
+            block2_score: { type: 'integer' },
+            block2_feedback: { type: 'string' },
+            block3_score: { type: 'integer' },
+            block3_feedback: { type: 'string' },
+            block4_score: { type: 'integer' },
+            block4_feedback: { type: 'string' },
+            critical_fixes_needed: {
+              type: 'array',
+              items: { type: 'string' }
+            },
+            approved: { type: 'boolean' }
           },
-          approved: { type: 'boolean' }
-        },
-        required: requiredSchemaFields
+          required: requiredSchemaFields
+        }
       }
+    };
+    if (modelName !== 'gemini-3.1-flash-lite') {
+      body.generation_config = { thinking_level: 'low' };
     }
+    return body;
   };
 
   const generateContentPayload = {
@@ -396,8 +413,6 @@ const handleEvaluate = async (req, res) => {
     }
   };
 
-  const generateContentEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent`;
-
   const extractApiError = async (response) => {
     const errRaw = await response.text().catch(() => '');
     let apiMsg = '';
@@ -410,14 +425,18 @@ const handleEvaluate = async (req, res) => {
     return `HTTP ${response.status} al consultar Gemini API${apiMsg ? `: ${apiMsg}` : '.'}`;
   };
 
-  const maxAttempts = 3;
+  const maxAttempts = 4;
   const baseWaitMs = 3000;
   let lastStatus = 0;
   let lastError = '';
   let geminiResult = null;
+  let modelUsed = modelChain[0];
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const apiKey = apiKeys[attempt % apiKeys.length];
+    const currentModel = modelChain[attempt % modelChain.length];
+    const generateContentEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(currentModel)}:generateContent`;
+
     try {
       let response = await fetch(INTERACTIONS_ENDPOINT, {
         method: 'POST',
@@ -426,14 +445,14 @@ const handleEvaluate = async (req, res) => {
           'x-goog-api-key': apiKey,
           'Api-Revision': API_REVISION
         },
-        body: JSON.stringify(interactionsPayload),
+        body: JSON.stringify(buildInteractionsPayload(currentModel)),
         signal: AbortSignal.timeout(45000)
       });
 
       // Fallback a generateContent si Interactions API devuelve 400 o 404 de ruta/esquema
       if (response.status === 400 || response.status === 404) {
         const interactionsErr = await extractApiError(response);
-        console.warn('[Auditor USB][Interactions Fallback]', interactionsErr);
+        console.warn('[Auditor USB][Interactions Fallback]', { model: currentModel, detail: interactionsErr });
         response = await fetch(`${generateContentEndpoint}?key=${encodeURIComponent(apiKey)}`, {
           method: 'POST',
           headers: {
@@ -451,6 +470,7 @@ const handleEvaluate = async (req, res) => {
         const { parsed, error } = parseGeminiJson(data);
         if (parsed) {
           geminiResult = parsed;
+          modelUsed = currentModel;
           break;
         }
         lastError = error;
@@ -464,20 +484,22 @@ const handleEvaluate = async (req, res) => {
 
     console.error('[Auditor USB][Gemini API]', {
       attempt: attempt + 1,
+      model: currentModel,
       status: lastStatus,
       detail: lastError
     });
 
     const isTransient = lastStatus === 429 || lastStatus === 503 || lastStatus === 500 || lastStatus === 0;
+    const isModelUnavailable = lastStatus === 404 && attempt + 1 < modelChain.length;
     const isKeyErrorWithMoreKeys = (lastStatus === 400 || lastStatus === 401 || lastStatus === 403) && attempt + 1 < apiKeys.length;
 
     if (attempt < maxAttempts - 1) {
-      if (isTransient) {
-        const waitMs = baseWaitMs * (2 ** attempt); // 3000ms, luego 6000ms
-        await sleep(waitMs);
+      if (isModelUnavailable || isKeyErrorWithMoreKeys) {
         continue;
       }
-      if (isKeyErrorWithMoreKeys) {
+      if (isTransient) {
+        const waitMs = Math.min(6000, baseWaitMs * (2 ** attempt)); // 3000ms, luego 6000ms
+        await sleep(waitMs);
         continue;
       }
     }
@@ -518,6 +540,7 @@ const handleEvaluate = async (req, res) => {
     block4_feedback: String(geminiResult.block4_feedback || ''),
     critical_fixes_needed: criticalFixes,
     approved,
+    model_used: modelUsed,
     evaluated_at: evaluatedAt
   };
 

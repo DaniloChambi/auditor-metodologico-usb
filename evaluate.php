@@ -233,9 +233,33 @@ DATOS DEL ESTUDIANTE Y DE LA INVESTIGACIÓN:
 - Respuesta técnica: {$cleanData['box4_methodology_diff']}
 TEXT;
 
-$modelName = getConfigValue('GEMINI_MODEL', $dotEnv, 'gemini-3.8-flash');
+$defaultModelChain = [
+    'gemini-3.8-flash',
+    'gemini-4-hydrogen',
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite'
+];
+$customModelsRaw = getConfigValue('GEMINI_MODELS', $dotEnv);
+if ($customModelsRaw === '') {
+    $customModelsRaw = getConfigValue('GEMINI_MODEL', $dotEnv);
+}
+$modelChain = [];
+if ($customModelsRaw !== '') {
+    $customParts = preg_split('/[,;\r\n]+/', $customModelsRaw) ?: [];
+    foreach ($customParts as $candidate) {
+        $cleanModel = trim(trim((string)$candidate), " \t\n\r\0\x0B\"'`");
+        if ($cleanModel !== '' && !in_array($cleanModel, $modelChain, true)) {
+            $modelChain[] = $cleanModel;
+        }
+    }
+}
+foreach ($defaultModelChain as $fallbackModel) {
+    if (!in_array($fallbackModel, $modelChain, true)) {
+        $modelChain[] = $fallbackModel;
+    }
+}
+
 $interactionsEndpoint = 'https://generativelanguage.googleapis.com/v1beta/interactions';
-$generateContentEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($modelName) . ':generateContent';
 $apiRevision = '2026-05-20';
 
 $requiredSchemaFields = [
@@ -248,38 +272,41 @@ $requiredSchemaFields = [
     'approved'
 ];
 
-$interactionsPayload = [
-    'model' => $modelName,
-    'system_instruction' => $systemInstruction,
-    'input' => $userPrompt,
-    'generation_config' => [
-        'thinking_level' => 'low'
-    ],
-    'response_format' => [
-        'type' => 'text',
-        'mime_type' => 'application/json',
-        'schema' => [
-            'type' => 'object',
-            'properties' => [
-                'total_score' => ['type' => 'integer'],
-                'block1_score' => ['type' => 'integer'],
-                'block1_feedback' => ['type' => 'string'],
-                'block2_score' => ['type' => 'integer'],
-                'block2_feedback' => ['type' => 'string'],
-                'block3_score' => ['type' => 'integer'],
-                'block3_feedback' => ['type' => 'string'],
-                'block4_score' => ['type' => 'integer'],
-                'block4_feedback' => ['type' => 'string'],
-                'critical_fixes_needed' => [
-                    'type' => 'array',
-                    'items' => ['type' => 'string']
+$buildInteractionsPayload = static function (string $targetModel) use ($systemInstruction, $userPrompt, $requiredSchemaFields): string {
+    $payload = [
+        'model' => $targetModel,
+        'system_instruction' => $systemInstruction,
+        'input' => $userPrompt,
+        'response_format' => [
+            'type' => 'text',
+            'mime_type' => 'application/json',
+            'schema' => [
+                'type' => 'object',
+                'properties' => [
+                    'total_score' => ['type' => 'integer'],
+                    'block1_score' => ['type' => 'integer'],
+                    'block1_feedback' => ['type' => 'string'],
+                    'block2_score' => ['type' => 'integer'],
+                    'block2_feedback' => ['type' => 'string'],
+                    'block3_score' => ['type' => 'integer'],
+                    'block3_feedback' => ['type' => 'string'],
+                    'block4_score' => ['type' => 'integer'],
+                    'block4_feedback' => ['type' => 'string'],
+                    'critical_fixes_needed' => [
+                        'type' => 'array',
+                        'items' => ['type' => 'string']
+                    ],
+                    'approved' => ['type' => 'boolean']
                 ],
-                'approved' => ['type' => 'boolean']
-            ],
-            'required' => $requiredSchemaFields
+                'required' => $requiredSchemaFields
+            ]
         ]
-    ]
-];
+    ];
+    if ($targetModel !== 'gemini-3.1-flash-lite') {
+        $payload['generation_config'] = ['thinking_level' => 'low'];
+    }
+    return (string)json_encode($payload, JSON_UNESCAPED_UNICODE);
+};
 
 $generateContentPayload = [
     'systemInstruction' => [
@@ -320,14 +347,14 @@ $generateContentPayload = [
     ]
 ];
 
-$encodedInteractions = json_encode($interactionsPayload, JSON_UNESCAPED_UNICODE);
-$encodedGenerateContent = json_encode($generateContentPayload, JSON_UNESCAPED_UNICODE);
+$encodedGenerateContent = (string)json_encode($generateContentPayload, JSON_UNESCAPED_UNICODE);
 
-$maxAttempts = 3;
+$maxAttempts = 4;
 $baseWaitSeconds = 3;
 $lastHttpStatus = 0;
 $lastErrorDetail = '';
 $geminiResult = null;
+$modelUsed = $modelChain[0];
 
 $parseGeminiJson = static function (array $decoded): array {
     $rawText = '';
@@ -412,6 +439,8 @@ $executePost = static function (string $url, array $headers, string $body): arra
 
 for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
     $currentKey = $apiKeys[$attempt % count($apiKeys)];
+    $currentModel = $modelChain[$attempt % count($modelChain)];
+    $generateContentEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($currentModel) . ':generateContent';
 
     [$responseBody, $curlError, $httpStatus] = $executePost(
         $interactionsEndpoint,
@@ -420,7 +449,7 @@ for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
             'x-goog-api-key: ' . $currentKey,
             'Api-Revision: ' . $apiRevision
         ],
-        $encodedInteractions
+        $buildInteractionsPayload($currentModel)
     );
 
     // Fallback a generateContent si Interactions API devuelve 400 o 404 de ruta/esquema
@@ -443,6 +472,7 @@ for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
 
         if (is_array($parsedJson)) {
             $geminiResult = $parsedJson;
+            $modelUsed = $currentModel;
             break;
         }
         $lastErrorDetail = $parseErr;
@@ -459,19 +489,20 @@ for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
         }
     }
 
-    error_log('[Auditor USB][Gemini API] attempt=' . ($attempt + 1) . ' status=' . $httpStatus . ' detail=' . $lastErrorDetail);
+    error_log('[Auditor USB][Gemini API] attempt=' . ($attempt + 1) . ' model=' . $currentModel . ' status=' . $httpStatus . ' detail=' . $lastErrorDetail);
 
     $isTransient = ($httpStatus === 429 || $httpStatus === 503 || $httpStatus === 500 || $httpStatus === 0);
+    $isModelUnavailable = ($httpStatus === 404) && (($attempt + 1) < count($modelChain));
     $isKeyErrorWithMoreKeys = ($httpStatus === 400 || $httpStatus === 401 || $httpStatus === 403) && (($attempt + 1) < count($apiKeys));
 
     if ($attempt < ($maxAttempts - 1)) {
-        if ($isTransient) {
-            // Exponential backoff: 3s en intento 1, 6s en intento 2
-            $waitSeconds = $baseWaitSeconds * (2 ** $attempt);
-            sleep($waitSeconds);
+        if ($isModelUnavailable || $isKeyErrorWithMoreKeys) {
             continue;
         }
-        if ($isKeyErrorWithMoreKeys) {
+        if ($isTransient) {
+            // Exponential backoff: 3s en intento 1, 6s en intento 2
+            $waitSeconds = min(6, $baseWaitSeconds * (2 ** $attempt));
+            sleep($waitSeconds);
             continue;
         }
     }
@@ -545,6 +576,7 @@ $responsePayload = [
     'block4_feedback' => (string)($geminiResult['block4_feedback'] ?? ''),
     'critical_fixes_needed' => $criticalFixes,
     'approved' => $approved,
+    'model_used' => $modelUsed,
     'evaluated_at' => $evaluatedAt
 ];
 
