@@ -64,22 +64,45 @@ $fallbackApiKeys = [
     // 'AIzaSy...'
 ];
 
+$placeholderKeys = [
+    'aizasykey1',
+    'aizasykey2',
+    'aizasykey3',
+    'tu_clave_1',
+    'tu_clave_2',
+    'your_api_key',
+    'changeme'
+];
+
+$sanitizeApiKey = static function ($candidate) use ($placeholderKeys): string {
+    $clean = trim((string)$candidate);
+    $clean = trim($clean, " \t\n\r\0\x0B\"'`");
+    if ($clean === '' || in_array(strtolower($clean), $placeholderKeys, true)) {
+        return '';
+    }
+    return $clean;
+};
+
 $keysRaw = getConfigValue('GEMINI_API_KEYS', $dotEnv);
 if ($keysRaw === '') {
     $keysRaw = getConfigValue('GEMINI_API_KEY', $dotEnv);
 }
+if ($keysRaw === '') {
+    $keysRaw = getConfigValue('GOOGLE_API_KEY', $dotEnv);
+}
 
 $apiKeys = [];
 if ($keysRaw !== '') {
-    foreach (explode(',', $keysRaw) as $candidate) {
-        $clean = trim($candidate);
-        if ($clean !== '') {
+    $parts = preg_split('/[,;\r\n]+/', $keysRaw) ?: [];
+    foreach ($parts as $candidate) {
+        $clean = $sanitizeApiKey($candidate);
+        if ($clean !== '' && !in_array($clean, $apiKeys, true)) {
             $apiKeys[] = $clean;
         }
     }
 }
 foreach ($fallbackApiKeys as $candidate) {
-    $clean = trim((string)$candidate);
+    $clean = $sanitizeApiKey($candidate);
     if ($clean !== '' && !in_array($clean, $apiKeys, true)) {
         $apiKeys[] = $clean;
     }
@@ -88,7 +111,8 @@ foreach ($fallbackApiKeys as $candidate) {
 if (count($apiKeys) === 0) {
     http_response_code(500);
     echo json_encode([
-        'error' => 'Configuración incompleta en el servidor: define GEMINI_API_KEYS o GEMINI_API_KEY.'
+        'error' => 'Configuración incompleta en el servidor.',
+        'detail' => 'Define GEMINI_API_KEYS o GEMINI_API_KEY con una API Key real de Google AI Studio (sin comillas ni valores de ejemplo).'
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -266,10 +290,54 @@ $lastHttpStatus = 0;
 $lastErrorDetail = '';
 $geminiResult = null;
 
+$parseGeminiJson = static function (array $decoded): array {
+    $candidate = $decoded['candidates'][0] ?? [];
+    $parts = is_array($candidate['content']['parts'] ?? null) ? $candidate['content']['parts'] : [];
+    $textChunks = [];
+    foreach ($parts as $part) {
+        if (!is_array($part)) {
+            continue;
+        }
+        if (!empty($part['thought'])) {
+            continue;
+        }
+        if (isset($part['text']) && is_string($part['text'])) {
+            $textChunks[] = $part['text'];
+        }
+    }
+
+    $rawText = trim(implode("\n", $textChunks));
+    if ($rawText === '') {
+        $reason = $candidate['finishReason'] ?? ($decoded['promptFeedback']['blockReason'] ?? 'sin contenido');
+        return [null, 'La respuesta de Gemini llegó vacía (' . $reason . ').'];
+    }
+
+    $unfenced = preg_replace('/^```(?:json)?\s*|\s*```$/i', '', $rawText) ?? $rawText;
+    $unfenced = trim($unfenced);
+
+    $parsed = json_decode($unfenced, true);
+    if (is_array($parsed)) {
+        return [$parsed, ''];
+    }
+
+    $firstBrace = strpos($unfenced, '{');
+    $lastBrace = strrpos($unfenced, '}');
+    if ($firstBrace !== false && $lastBrace !== false && $lastBrace > $firstBrace) {
+        $slice = substr($unfenced, $firstBrace, $lastBrace - $firstBrace + 1);
+        $parsed = json_decode($slice, true);
+        if (is_array($parsed)) {
+            return [$parsed, ''];
+        }
+    }
+
+    return [null, 'La respuesta de Gemini no devolvió un JSON válido.'];
+};
+
 for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
     $currentKey = $apiKeys[$attempt % count($apiKeys)];
+    $requestUrl = $endpoint . '?key=' . urlencode($currentKey);
 
-    $ch = curl_init($endpoint);
+    $ch = curl_init($requestUrl);
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
         CURLOPT_RETURNTRANSFER => true,
@@ -290,24 +358,41 @@ for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
 
     if ($responseBody !== false && $httpStatus >= 200 && $httpStatus < 300) {
         $decoded = json_decode($responseBody, true);
-        $rawText = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? '';
-        $parsedJson = json_decode($rawText, true);
+        [$parsedJson, $parseErr] = is_array($decoded) ? $parseGeminiJson($decoded) : [null, 'Respuesta HTTP 200 inválida de Gemini.'];
 
         if (is_array($parsedJson)) {
             $geminiResult = $parsedJson;
             break;
         }
-        $lastErrorDetail = 'La respuesta de Gemini no devolvió un JSON válido.';
+        $lastErrorDetail = $parseErr;
     } else {
-        $lastErrorDetail = $curlError !== '' ? $curlError : ('HTTP ' . $httpStatus . ' al consultar Gemini API.');
+        $apiMsg = '';
+        if (is_string($responseBody) && $responseBody !== '') {
+            $errJson = json_decode($responseBody, true);
+            $apiMsg = is_array($errJson) ? (string)($errJson['error']['message'] ?? '') : trim(substr($responseBody, 0, 240));
+        }
+        if ($curlError !== '') {
+            $lastErrorDetail = $curlError;
+        } else {
+            $lastErrorDetail = 'HTTP ' . $httpStatus . ' al consultar Gemini API' . ($apiMsg !== '' ? ': ' . $apiMsg : '.');
+        }
     }
 
-    $isRateLimitOrTransient = ($httpStatus === 429 || $httpStatus === 503 || $httpStatus === 500 || $httpStatus === 0);
-    if ($isRateLimitOrTransient && $attempt < ($maxAttempts - 1)) {
-        // Exponential backoff: 3s en intento 1, 6s en intento 2
-        $waitSeconds = $baseWaitSeconds * (2 ** $attempt);
-        sleep($waitSeconds);
-        continue;
+    error_log('[Auditor USB][Gemini API] attempt=' . ($attempt + 1) . ' status=' . $httpStatus . ' detail=' . $lastErrorDetail);
+
+    $isTransient = ($httpStatus === 429 || $httpStatus === 503 || $httpStatus === 500 || $httpStatus === 0);
+    $isKeyErrorWithMoreKeys = ($httpStatus === 400 || $httpStatus === 401 || $httpStatus === 403) && (($attempt + 1) < count($apiKeys));
+
+    if ($attempt < ($maxAttempts - 1)) {
+        if ($isTransient) {
+            // Exponential backoff: 3s en intento 1, 6s en intento 2
+            $waitSeconds = $baseWaitSeconds * (2 ** $attempt);
+            sleep($waitSeconds);
+            continue;
+        }
+        if ($isKeyErrorWithMoreKeys) {
+            continue;
+        }
     }
 
     break;

@@ -526,7 +526,8 @@
       const body = await response.json().catch(() => null);
       if (!response.ok || !body) {
         const message = (body && body.error) ? body.error : `El servidor respondió con estado HTTP ${response.status}.`;
-        throw new Error(message);
+        const detail = (body && body.detail) ? ` Detalle: ${body.detail}` : '';
+        throw new Error(`${message}${detail}`);
       }
 
       renderAuditResult(body, payload);

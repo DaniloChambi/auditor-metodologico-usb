@@ -68,19 +68,78 @@ const getEnv = (key, fallback = '') => {
   return fallback;
 };
 
+const PLACEHOLDER_KEYS = new Set([
+  'aizasykey1',
+  'aizasykey2',
+  'aizasykey3',
+  'tu_clave_1',
+  'tu_clave_2',
+  'your_api_key',
+  'changeme'
+]);
+
+const sanitizeApiKey = (rawKey) => {
+  let cleaned = String(rawKey || '').trim();
+  cleaned = cleaned.replace(/^["'`]+|["'`]+$/g, '').trim();
+  if (!cleaned) return '';
+  if (PLACEHOLDER_KEYS.has(cleaned.toLowerCase())) return '';
+  return cleaned;
+};
+
 const getApiKeysPool = () => {
-  const raw = getEnv('GEMINI_API_KEYS') || getEnv('GEMINI_API_KEY');
+  const raw = getEnv('GEMINI_API_KEYS') || getEnv('GEMINI_API_KEY') || getEnv('GOOGLE_API_KEY');
   const keys = raw
-    .split(',')
-    .map((k) => k.trim())
+    .split(/[,;\r\n]+/)
+    .map(sanitizeApiKey)
     .filter(Boolean);
 
+  // Deduplicate while preserving items before shuffling
+  const uniqueKeys = Array.from(new Set(keys));
+
   // Fisher-Yates shuffle for random key rotation
-  for (let i = keys.length - 1; i > 0; i--) {
+  for (let i = uniqueKeys.length - 1; i > 0; i--) {
     const j = crypto.randomInt(0, i + 1);
-    [keys[i], keys[j]] = [keys[j], keys[i]];
+    [uniqueKeys[i], uniqueKeys[j]] = [uniqueKeys[j], uniqueKeys[i]];
   }
-  return keys;
+  return uniqueKeys;
+};
+
+const parseGeminiJson = (data) => {
+  const candidate = data?.candidates?.[0];
+  const parts = Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [];
+  const rawText = parts
+    .filter((p) => p && !p.thought && typeof p.text === 'string')
+    .map((p) => p.text)
+    .join('\n')
+    .trim();
+
+  if (!rawText) {
+    const reason = candidate?.finishReason || data?.promptFeedback?.blockReason || 'sin contenido';
+    return { parsed: null, error: `La respuesta de Gemini llegó vacía (${reason}).` };
+  }
+
+  const unfenced = rawText
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+
+  try {
+    const parsed = JSON.parse(unfenced);
+    if (parsed && typeof parsed === 'object') return { parsed, error: '' };
+  } catch {
+    const firstBrace = unfenced.indexOf('{');
+    const lastBrace = unfenced.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      try {
+        const parsed = JSON.parse(unfenced.slice(firstBrace, lastBrace + 1));
+        if (parsed && typeof parsed === 'object') return { parsed, error: '' };
+      } catch {
+        // Fall through to error message
+      }
+    }
+  }
+
+  return { parsed: null, error: 'La respuesta de Gemini no devolvió un JSON válido.' };
 };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -194,7 +253,8 @@ const handleEvaluate = async (req, res) => {
   const apiKeys = getApiKeysPool();
   if (apiKeys.length === 0) {
     sendJson(res, 500, {
-      error: 'Configuración incompleta en el servidor: define GEMINI_API_KEYS o GEMINI_API_KEY.'
+      error: 'Configuración incompleta en el servidor.',
+      detail: 'Define GEMINI_API_KEYS o GEMINI_API_KEY en Dokploy con una API Key real de Google AI Studio (sin comillas ni valores de ejemplo).'
     });
     return;
   }
@@ -281,8 +341,9 @@ const handleEvaluate = async (req, res) => {
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const apiKey = apiKeys[attempt % apiKeys.length];
+    const requestUrl = `${GEMINI_ENDPOINT}?key=${encodeURIComponent(apiKey)}`;
     try {
-      const response = await fetch(GEMINI_ENDPOINT, {
+      const response = await fetch(requestUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -295,26 +356,46 @@ const handleEvaluate = async (req, res) => {
       lastStatus = response.status;
       if (response.ok) {
         const data = await response.json();
-        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        const parsed = JSON.parse(rawText);
-        if (parsed && typeof parsed === 'object') {
+        const { parsed, error } = parseGeminiJson(data);
+        if (parsed) {
           geminiResult = parsed;
           break;
         }
-        lastError = 'La respuesta de Gemini no devolvió un JSON válido.';
+        lastError = error;
       } else {
-        lastError = `HTTP ${response.status} al consultar Gemini API.`;
+        const errRaw = await response.text().catch(() => '');
+        let apiMsg = '';
+        try {
+          const errJson = JSON.parse(errRaw);
+          apiMsg = errJson?.error?.message || '';
+        } catch {
+          apiMsg = errRaw.slice(0, 240).trim();
+        }
+        lastError = `HTTP ${response.status} al consultar Gemini API${apiMsg ? `: ${apiMsg}` : '.'}`;
       }
     } catch (err) {
       lastStatus = 0;
       lastError = err instanceof Error ? err.message : 'Error de red al consultar Gemini API.';
     }
 
-    const shouldRetry = lastStatus === 429 || lastStatus === 503 || lastStatus === 500 || lastStatus === 0;
-    if (shouldRetry && attempt < maxAttempts - 1) {
-      const waitMs = baseWaitMs * (2 ** attempt); // 3000ms, luego 6000ms
-      await sleep(waitMs);
-      continue;
+    console.error('[Auditor USB][Gemini API]', {
+      attempt: attempt + 1,
+      status: lastStatus,
+      detail: lastError
+    });
+
+    const isTransient = lastStatus === 429 || lastStatus === 503 || lastStatus === 500 || lastStatus === 0;
+    const isKeyErrorWithMoreKeys = (lastStatus === 400 || lastStatus === 401 || lastStatus === 403) && attempt + 1 < apiKeys.length;
+
+    if (attempt < maxAttempts - 1) {
+      if (isTransient) {
+        const waitMs = baseWaitMs * (2 ** attempt); // 3000ms, luego 6000ms
+        await sleep(waitMs);
+        continue;
+      }
+      if (isKeyErrorWithMoreKeys) {
+        continue;
+      }
     }
     break;
   }
