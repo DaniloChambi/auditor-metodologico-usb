@@ -1,0 +1,12 @@
+{
+  "name": "auditor-metodologico-usb",
+  "version": "1.0.0",
+  "description": "Auditor Metodológico USB - Segundo Parcial Metodología de la Investigación II",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

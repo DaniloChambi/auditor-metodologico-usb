@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auditor Metodológico USB — Segundo Parcial Metodología de la Investigación II</title>
+  <meta name="description" content="Plataforma de evaluación y auditoría metodológica para el Segundo Parcial de Metodología de la Investigación II (Guía Talleres de Grado USB 2026).">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            usb: {
+              red: '#B91C1C',
+              orange: '#FF9F1C',
+              green: '#28A745',
+              purple: '#5F259F',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+  <!-- Barra Superior Institucional -->
+  <header class="no-print bg-white border-b-4 border-usb-red shadow-sm sticky top-0 z-30">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="flex items-start sm:items-center gap-3">
+        <div class="w-11 h-11 rounded-lg bg-usb-red text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-sm" aria-hidden="true">
+          USB
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
+            Auditor Metodológico USB
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-600 font-medium">
+            Segundo Parcial — Metodología de la Investigación II (Guía Talleres de Grado USB 2026)
+          </p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-50 text-usb-purple border border-purple-200">
+          <span class="w-2 h-2 rounded-full bg-usb-purple" aria-hidden="true"></span>
+          Umbral de Habilitación: &ge; 51 / 100 pts
+        </span>
+        <span id="draft-status" class="text-xs text-slate-500 font-medium px-2 py-1" aria-live="polite">
+          Borrador local activo
+        </span>
+      </div>
+    </div>
+
+    <!-- Barra de progreso de completitud -->
+    <div class="bg-slate-50 border-t border-slate-200">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <nav aria-label="Progreso del examen" class="flex flex-wrap items-center gap-2 sm:gap-3">
+          <a href="#sec-identificacion" class="px-2 py-1 rounded hover:bg-slate-200 text-slate-700 font-medium">0. Datos</a>
+          <a href="#sec-caja1" class="px-2 py-1 rounded hover:bg-red-50 text-usb-red font-semibold">Caja 1 (30 pts)</a>
+          <a href="#sec-caja2" class="px-2 py-1 rounded hover:bg-amber-50 text-amber-700 font-semibold">Caja 2 (25 pts)</a>
+          <a href="#sec-caja3" class="px-2 py-1 rounded hover:bg-purple-50 text-usb-purple font-semibold">Caja 3 (25 pts)</a>
+          <a href="#sec-caja4" class="px-2 py-1 rounded hover:bg-emerald-50 text-usb-green font-semibold">Caja 4 (20 pts)</a>
+        </nav>
+        <div class="flex items-center gap-3">
+          <span class="text-slate-600 font-semibold">
+            Campos completados: <span id="completion-count" class="text-usb-purple">0</span>/<span id="completion-total">32</span>
+          </span>
+          <button type="button" id="clear-draft-btn" class="text-xs font-semibold text-usb-red hover:underline px-2 py-1 rounded">
+            Limpiar borrador
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
+
+    <!-- Instrucciones Académicas -->
+    <section class="no-print bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="space-y-1.5">
+          <h2 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-usb-orange" aria-hidden="true"></span>
+            Protocolo de Evaluación Rigurosa
+          </h2>
+          <p class="text-sm text-slate-600">
+            Completa la sección <strong>0. Identificación del Estudiante y del Proyecto</strong> (obligatoria) y responde en las <strong>Cajas 1 a 4</strong> todo lo que tengas claro o avanzado según la nota a la que aspires, conforme a la <strong>Guía de Talleres de Grado USB 2026</strong>. Con <strong>&ge; 51 puntos</strong> habilitas el Certificado + Examen Final en PDF para subirlo a Microsoft Teams.
+          </p>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0 text-center text-xs font-semibold">
+          <div class="px-3 py-2 rounded-lg bg-red-50 text-usb-red border border-red-200">Caja 1<br><span class="text-sm font-bold">30 pts</span></div>
+          <div class="px-3 py-2 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">Caja 2<br><span class="text-sm font-bold">25 pts</span></div>
+          <div class="px-3 py-2 rounded-lg bg-purple-50 text-usb-purple border border-purple-200">Caja 3<br><span class="text-sm font-bold">25 pts</span></div>
+          <div class="px-3 py-2 rounded-lg bg-emerald-50 text-usb-green border border-emerald-200">Caja 4<br><span class="text-sm font-bold">20 pts</span></div>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-200">
+        <div class="text-xs font-bold uppercase tracking-wide text-slate-700 mb-2">Escala de Calificación y Habilitación</div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs text-center">
+          <div class="px-2.5 py-2 rounded-lg bg-purple-50 border border-purple-200 text-usb-purple font-semibold">
+            <div class="font-bold">100</div>
+            <div>Distinguido con Honores</div>
+          </div>
+          <div class="px-2.5 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-semibold">
+            <div class="font-bold">90 a 99</div>
+            <div>Excelente</div>
+          </div>
+          <div class="px-2.5 py-2 rounded-lg bg-emerald-50/70 border border-emerald-200 text-emerald-800 font-semibold">
+            <div class="font-bold">80 a 89</div>
+            <div>Muy Bueno</div>
+          </div>
+          <div class="px-2.5 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold">
+            <div class="font-bold">70 a 79</div>
+            <div>Bueno</div>
+          </div>
+          <div class="px-2.5 py-2 rounded-lg bg-amber-50/60 border border-amber-200 text-amber-800 font-semibold">
+            <div class="font-bold">51 a 69</div>
+            <div>Aprobado</div>
+          </div>
+          <div class="px-2.5 py-2 rounded-lg bg-red-50 border border-red-200 text-usb-red font-semibold">
+            <div class="font-bold">50 o menos</div>
+            <div>Reprobado</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Resumen de errores de validación cliente (solo si intenta enviar incompleto) -->
+    <div id="validation-banner" class="no-print hidden rounded-xl border-2 border-usb-red bg-red-50 p-4 text-usb-red" role="alert" tabindex="-1">
+      <p class="font-bold text-sm sm:text-base">⚠️ Revisa los campos obligatorios antes de auditar</p>
+      <p id="validation-banner-msg" class="text-sm mt-1">Faltan campos por completar o requieren mayor detalle.</p>
+    </div>
+
+    <!-- Formulario Principal -->
+    <form id="audit-form" action="evaluate.php" method="POST" novalidate class="no-print space-y-8">
+
+      <!-- SECCIÓN 0: Identificación -->
+      <fieldset id="sec-identificacion" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <legend class="w-full px-5 sm:px-6 py-4 bg-slate-900 text-white font-bold text-base sm:text-lg flex items-center justify-between">
+          <span>0. Identificación del Estudiante y del Proyecto</span>
+          <span class="text-xs font-medium bg-white/15 px-2.5 py-1 rounded-full">Obligatorio</span>
+        </legend>
+
+        <div class="p-5 sm:p-6 space-y-2">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+            <div class="form-field">
+              <label for="student_name" class="form-label">Nombre Completo <span class="text-usb-red" aria-hidden="true">*</span></label>
+              <span id="student_name_hint" class="form-hint">Apellidos y nombres tal como figuran en Microsoft Teams / Kardex.</span>
+              <input type="text" id="student_name" name="student_name" class="form-control" required minlength="5" maxlength="140" autocomplete="name" enterkeyhint="next" aria-describedby="student_name_hint" aria-errormessage="student_name_err" placeholder="Ej. Apaza Mamani Valeria Sofía">
+              <div id="student_name_err" class="error-msg"><span>❌</span> Ingresa tu nombre completo (mínimo 5 caracteres).</div>
+            </div>
+
+            <div class="form-field">
+              <label for="student_id" class="form-label">RU (Registro Universitario) <span class="text-usb-red" aria-hidden="true">*</span></label>
+              <span id="student_id_hint" class="form-hint">Ingresa tu número de Registro Universitario (RU) sin espacios innecesarios.</span>
+              <input type="text" id="student_id" name="student_id" class="form-control" required minlength="4" maxlength="30" enterkeyhint="next" aria-describedby="student_id_hint" aria-errormessage="student_id_err" placeholder="Ej. 202304128">
+              <div id="student_id_err" class="error-msg"><span>❌</span> Ingresa tu RU (Registro Universitario) válido.</div>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="project_title" class="form-label">Título de la Investigación (Tentativo o Preliminar) <span class="text-usb-red" aria-hidden="true">*</span></label>
+            <span id="project_title_hint" class="form-hint">Título académico claro que delimite qué, dónde y con qué propósito se investiga o desarrolla.</span>
+            <input type="text" id="project_title" name="project_title" class="form-control" required minlength="15" maxlength="300" enterkeyhint="next" aria-describedby="project_title_hint" aria-errormessage="project_title_err" placeholder="Ej. Modelo predictivo basado en redes neuronales temporales para la detección temprana de...">
+            <div id="project_title_err" class="error-msg"><span>❌</span> Ingresa un título de la investigación (tentativo o preliminar) descriptivo (mínimo 15 caracteres).</div>
+          </div>
+
+          <div class="form-field">
+            <span id="modality_label" class="form-label">Modalidad de Graduación <span class="text-usb-red" aria-hidden="true">*</span></span>
+            <span id="modality_hint" class="form-hint">Selecciona una modalidad conforme al Reglamento de Talleres de Grado USB.</span>
+            <div id="modality_group" class="radio-group-wrapper grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1" role="radiogroup" aria-labelledby="modality_label" aria-describedby="modality_hint">
+              <label class="radio-card" for="modality_tesis">
+                <input type="radio" id="modality_tesis" name="modality" value="Tesis" required>
+                <span>Tesis</span>
+              </label>
+              <label class="radio-card" for="modality_proyecto">
+                <input type="radio" id="modality_proyecto" name="modality" value="Proyecto de Grado" required>
+                <span>Proyecto de Grado</span>
+              </label>
+              <label class="radio-card" for="modality_trabajo">
+                <input type="radio" id="modality_trabajo" name="modality" value="Trabajo Dirigido" required>
+                <span>Trabajo Dirigido</span>
+              </label>
+            </div>
+            <div id="modality_err" class="error-msg"><span>❌</span> Selecciona una modalidad de graduación.</div>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- CAJA 1: Cap. I - Problema y Trazabilidad de Objetivos (30 pts) -->
+      <fieldset id="sec-caja1" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <legend class="w-full px-5 sm:px-6 py-4 bg-usb-red text-white font-bold text-base sm:text-lg flex items-center justify-between">
+          <span>Caja 1: Cap. I — Problema y Trazabilidad de Objetivos (Opcional según avance)</span>
+          <span class="text-xs font-bold bg-white text-usb-red px-2.5 py-1 rounded-full">30 pts</span>
+        </legend>
+
+        <div class="p-5 sm:p-6 space-y-2">
+          <div class="rounded-lg bg-red-50 border border-red-200 p-3.5 text-xs sm:text-sm text-red-950 mb-4">
+            <strong>Criterio de Auditoría:</strong> Evita verbos de tareas operativas (<em>programar, instalar, configurar, hacer encuestas, codificar</em>) en los objetivos específicos y no confundas actividades (<em>hacer entrevistas</em>) con <strong>evidencia tangible</strong> en el Cuadro 6.
+          </div>
+
+          <div class="form-field">
+            <label for="box1_symptom" class="form-label">1.1 Síntoma con Evidencia Empírica (Problema)</label>
+            <span id="box1_symptom_hint" class="form-hint">Describe la manifestación observable del problema respaldada con datos, métricas, registros o hechos verificables en el contexto.</span>
+            <textarea id="box1_symptom" name="box1_symptom" rows="3" class="form-control" aria-describedby="box1_symptom_hint" placeholder="Ej. Según registros del área de operaciones (2025), el 38% de las solicitudes presentan tiempos de respuesta mayores a 4.5 horas..."></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+            <div class="form-field">
+              <label for="box1_cause" class="form-label">1.2 Causa Raíz</label>
+              <span id="box1_cause_hint" class="form-hint">Factores estructurales, técnicos u organizacionales que originan el síntoma.</span>
+              <textarea id="box1_cause" name="box1_cause" rows="3" class="form-control" aria-describedby="box1_cause_hint" placeholder="Describe las causas directas verificadas..."></textarea>
+            </div>
+
+            <div class="form-field">
+              <label for="box1_effect" class="form-label">1.3 Efecto / Pronóstico</label>
+              <span id="box1_effect_hint" class="form-hint">Consecuencias técnicas, operativas o económicas si la causa persiste.</span>
+              <textarea id="box1_effect" name="box1_effect" rows="3" class="form-control" aria-describedby="box1_effect_hint" placeholder="Describe los impactos cuantificables o cualitativos..."></textarea>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="box1_general_question" class="form-label">1.4 Pregunta General de Investigación</label>
+            <span id="box1_general_question_hint" class="form-hint">Interrogante central alineada exactamente con el título y el objetivo general.</span>
+            <textarea id="box1_general_question" name="box1_general_question" rows="2" class="form-control" aria-describedby="box1_general_question_hint" placeholder="¿En qué medida / De qué manera...?"></textarea>
+          </div>
+
+          <div class="form-field">
+            <label for="box1_general_objective" class="form-label">1.5 Objetivo General</label>
+            <span id="box1_general_objective_hint" class="form-hint">Debe responder directamente a la Pregunta General (Verbo en infinitivo + objeto + finalidad + contexto).</span>
+            <textarea id="box1_general_objective" name="box1_general_objective" rows="2" class="form-control" aria-describedby="box1_general_objective_hint" placeholder="Diseñar / Desarrollar / Proponer..."></textarea>
+          </div>
+
+          <!-- Matriz Cuadro 6: 3 Objetivos Específicos -->
+          <div class="pt-4 border-t border-slate-200 space-y-5">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">1.6 Matriz de Trazabilidad de Objetivos Específicos (Cuadro 6 de la Guía)</h3>
+              <p class="text-xs sm:text-sm text-slate-600">Detalla los 3 Objetivos Específicos como resultados verificables, junto a su evidencia tangible, fuente/procedimiento y criterio de análisis.</p>
+            </div>
+
+            <!-- Objetivo Específico 1 -->
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-2">
+              <div class="font-bold text-sm text-usb-red">Objetivo Específico 1 (OE1)</div>
+              <div class="form-field">
+                <label for="oe1_text" class="form-label">Enunciado del OE1 (Resultado verificable)</label>
+                <span id="oe1_text_hint" class="form-hint">Verbo de resultado evaluable (ej. Caracterizar, Modelar, Validar, Evaluar).</span>
+                <textarea id="oe1_text" name="oe1_text" rows="2" class="form-control" aria-describedby="oe1_text_hint"></textarea>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="form-field">
+                  <label for="oe1_evidence" class="form-label">Evidencia requerida</label>
+                  <span id="oe1_evidence_hint" class="form-hint">Entregable o artefacto tangible (no actividad).</span>
+                  <textarea id="oe1_evidence" name="oe1_evidence" rows="2" class="form-control" aria-describedby="oe1_evidence_hint"></textarea>
+                </div>
+                <div class="form-field">
+                  <label for="oe1_source" class="form-label">Fuente / Procedimiento</label>
+                  <span id="oe1_source_hint" class="form-hint">Origen de datos e instrumento/técnica.</span>
+                  <textarea id="oe1_source" name="oe1_source" rows="2" class="form-control" aria-describedby="oe1_source_hint"></textarea>
+                </div>
+                <div class="form-field">
+                  <label for="oe1_criteria" class="form-label">Criterio de análisis</label>
+                  <span id="oe1_criteria_hint" class="form-hint">Parámetro, regla o umbral de aceptación.</span>
+                  <textarea id="oe1_criteria" name="oe1_criteria" rows="2" class="form-control" aria-describedby="oe1_criteria_hint"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Objetivo Específico 2 -->
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-2">
+              <div class="font-bold text-sm text-usb-red">Objetivo Específico 2 (OE2)</div>
+              <div class="form-field">
+                <label for="oe2_text" class="form-label">Enunciado del OE2 (Resultado verificable)</label>
+                <span id="oe2_text_hint" class="form-hint">Verbo de resultado evaluable (evitar tareas operativas como programar/instalar/codificar).</span>
+                <textarea id="oe2_text" name="oe2_text" rows="2" class="form-control" aria-describedby="oe2_text_hint"></textarea>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="form-field">
+                  <label for="oe2_evidence" class="form-label">Evidencia requerida</label>
+                  <span id="oe2_evidence_hint" class="form-hint">Entregable o artefacto tangible.</span>
+                  <textarea id="oe2_evidence" name="oe2_evidence" rows="2" class="form-control" aria-describedby="oe2_evidence_hint"></textarea>
+                </div>
+                <div class="form-field">
+                  <label for="oe2_source" class="form-label">Fuente / Procedimiento</label>
+                  <span id="oe2_source_hint" class="form-hint">Origen de datos e instrumento/técnica.</span>
+                  <textarea id="oe2_source" name="oe2_source" rows="2" class="form-control" aria-describedby="oe2_source_hint"></textarea>
+                </div>
+                <div class="form-field">
+                  <label for="oe2_criteria" class="form-label">Criterio de análisis</label>
+                  <span id="oe2_criteria_hint" class="form-hint">Parámetro, regla o umbral de aceptación.</span>
+                  <textarea id="oe2_criteria" name="oe2_criteria" rows="2" class="form-control" aria-describedby="oe2_criteria_hint"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Objetivo Específico 3 -->
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-2">
+              <div class="font-bold text-sm text-usb-red">Objetivo Específico 3 (OE3)</div>
+              <div class="form-field">
+                <label for="oe3_text" class="form-label">Enunciado del OE3 (Resultado verificable)</label>
+                <span id="oe3_text_hint" class="form-hint">Resultado orientado a evaluación/validación técnica o experimental del sistema/modelo.</span>
+                <textarea id="oe3_text" name="oe3_text" rows="2" class="form-control" aria-describedby="oe3_text_hint"></textarea>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="form-field">
+                  <label for="oe3_evidence" class="form-label">Evidencia requerida</label>
+                  <span id="oe3_evidence_hint" class="form-hint">Entregable o registro empírico tangible.</span>
+                  <textarea id="oe3_evidence" name="oe3_evidence" rows="2" class="form-control" aria-describedby="oe3_evidence_hint"></textarea>
+                </div>
+                <div class="form-field">
+                  <label for="oe3_source" class="form-label">Fuente / Procedimiento</label>
+                  <span id="oe3_source_hint" class="form-hint">Protocolo de prueba, dataset o instrumento.</span>
+                  <textarea id="oe3_source" name="oe3_source" rows="2" class="form-control" aria-describedby="oe3_source_hint"></textarea>
+                </div>
+                <div class="form-field">
+                  <label for="oe3_criteria" class="form-label">Criterio de análisis</label>
+                  <span id="oe3_criteria_hint" class="form-hint">Métrica o estadístico contra línea base.</span>
+                  <textarea id="oe3_criteria" name="oe3_criteria" rows="2" class="form-control" aria-describedby="oe3_criteria_hint"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- CAJA 2: Apartado 1.6 - Idea Preliminar de Solución y Viabilidad (25 pts) -->
+      <fieldset id="sec-caja2" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <legend class="w-full px-5 sm:px-6 py-4 bg-usb-orange text-slate-950 font-bold text-base sm:text-lg flex items-center justify-between">
+          <span>Caja 2: Apartado 1.6 — Idea Preliminar de Solución y Viabilidad (Opcional según avance)</span>
+          <span class="text-xs font-bold bg-slate-950 text-white px-2.5 py-1 rounded-full">25 pts</span>
+        </legend>
+
+        <div class="p-5 sm:p-6 space-y-2">
+          <div class="rounded-lg bg-amber-50 border border-amber-200 p-3.5 text-xs sm:text-sm text-amber-950 mb-4">
+            <strong>Criterio de Auditoría:</strong> Delimita claramente qué incluye y qué excluye el sistema (alcance/exclusiones) y formula métricas reales de ingeniería (Cuadro 3: latencia, F1-score, precisión, throughput, tiempos de proceso, etc.) junto con permisos éticos y acceso (Cuadro 8).
+          </div>
+
+          <div class="form-field">
+            <label for="box2_system_limits" class="form-label">2.1 Límites del Sistema (Alcance y Exclusiones Explícitas)</label>
+            <span id="box2_system_limits_hint" class="form-hint">Define la frontera técnica y operativa: qué módulos/procesos cubre y qué queda expresamente fuera del estudio.</span>
+            <textarea id="box2_system_limits" name="box2_system_limits" rows="3" class="form-control" aria-describedby="box2_system_limits_hint" placeholder="Alcance: ... | Exclusiones explícitas: ..."></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+            <div class="form-field">
+              <label for="box2_actors" class="form-label">2.2 Actores del Sistema</label>
+              <span id="box2_actors_hint" class="form-hint">Roles humanos, sistemas externos, sensores o servicios que interactúan con la solución.</span>
+              <textarea id="box2_actors" name="box2_actors" rows="3" class="form-control" aria-describedby="box2_actors_hint"></textarea>
+            </div>
+
+            <div class="form-field">
+              <label for="box2_components" class="form-label">2.3 Componentes de la Solución</label>
+              <span id="box2_components_hint" class="form-hint">Subsistemas lógicos, módulos de procesamiento, almacenamiento, hardware o interfaces preliminares.</span>
+              <textarea id="box2_components" name="box2_components" rows="3" class="form-control" aria-describedby="box2_components_hint"></textarea>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="box2_engineering_metrics" class="form-label">2.4 Métricas Técnicas de Ingeniería (Cuadro 3)</label>
+            <span id="box2_engineering_metrics_hint" class="form-hint">Indicadores cuantitativos con unidades y metas (ej. latencia p95 &lt; 250 ms, precisión &ge; 92%, RMSE, disponibilidad, consumo).</span>
+            <textarea id="box2_engineering_metrics" name="box2_engineering_metrics" rows="3" class="form-control" aria-describedby="box2_engineering_metrics_hint"></textarea>
+          </div>
+
+          <div class="form-field">
+            <label for="box2_ethics_access" class="form-label">2.5 Supuestos, Permisos Éticos y Viabilidad de Acceso (Cuadro 8)</label>
+            <span id="box2_ethics_access_hint" class="form-hint">Autorizaciones institucionales, privacidad/anonimización de datos, consentimiento informado y condiciones de acceso a infraestructura o datasets.</span>
+            <textarea id="box2_ethics_access" name="box2_ethics_access" rows="3" class="form-control" aria-describedby="box2_ethics_access_hint"></textarea>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- CAJA 3: Cap. II - Fundamentación Teórica, Estado del Arte y Legal (25 pts) -->
+      <fieldset id="sec-caja3" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <legend class="w-full px-5 sm:px-6 py-4 bg-usb-purple text-white font-bold text-base sm:text-lg flex items-center justify-between">
+          <span>Caja 3: Cap. II — Fundamentación Teórica, Estado del Arte y Legal (Opcional según avance)</span>
+          <span class="text-xs font-bold bg-white text-usb-purple px-2.5 py-1 rounded-full">25 pts</span>
+        </legend>
+
+        <div class="p-5 sm:p-6 space-y-2">
+          <div class="rounded-lg bg-purple-50 border border-purple-200 p-3.5 text-xs sm:text-sm text-purple-950 mb-4">
+            <strong>Criterio de Auditoría:</strong> Cada antecedente (2.1.2) debe indicar el <strong>vacío explícito</strong> que deja para justificar tu aporte. La teoría rectora (2.2.1) debe conectarse directamente con tus variables o requerimientos, nunca ser definiciones sueltas de glosario.
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+            <div class="form-field">
+              <label for="box3_antecedent1" class="form-label">3.1 Antecedente 1 y Vacío Explícito (Apartado 2.1.2)</label>
+              <span id="box3_antecedent1_hint" class="form-hint">Autor, año, aporte/método y qué brecha o limitación deja sin resolver frente a tu problema.</span>
+              <textarea id="box3_antecedent1" name="box3_antecedent1" rows="4" class="form-control" aria-describedby="box3_antecedent1_hint"></textarea>
+            </div>
+
+            <div class="form-field">
+              <label for="box3_antecedent2" class="form-label">3.2 Antecedente 2 y Vacío Explícito (Apartado 2.1.2)</label>
+              <span id="box3_antecedent2_hint" class="form-hint">Autor, año, aporte/método y qué brecha o limitación deja sin resolver frente a tu problema.</span>
+              <textarea id="box3_antecedent2" name="box3_antecedent2" rows="4" class="form-control" aria-describedby="box3_antecedent2_hint"></textarea>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="box3_guiding_theory" class="form-label">3.3 Teoría o Modelo Rector Conectado a Variables/Requerimientos (Apartado 2.2.1)</label>
+            <span id="box3_guiding_theory_hint" class="form-hint">Explica qué teoría, modelo matemático o paradigma sustenta tus variables dependientes/independientes o requerimientos arquitectónicos.</span>
+            <textarea id="box3_guiding_theory" name="box3_guiding_theory" rows="3" class="form-control" aria-describedby="box3_guiding_theory_hint"></textarea>
+          </div>
+
+          <div class="form-field">
+            <label for="box3_tech_foundation" class="form-label">3.4 Fundamento Tecnológico (Apartado 2.2.2)</label>
+            <span id="box3_tech_foundation_hint" class="form-hint">Justificación técnica de arquitecturas, protocolos, algoritmos o motores elegidos en función de tus métricas del Cuadro 3.</span>
+            <textarea id="box3_tech_foundation" name="box3_tech_foundation" rows="3" class="form-control" aria-describedby="box3_tech_foundation_hint"></textarea>
+          </div>
+
+          <div class="form-field">
+            <label for="box3_legal_standards" class="form-label">3.5 Normativa, Estándar Técnico o Marco Legal Aplicable (Apartado 2.3.2)</label>
+            <span id="box3_legal_standards_hint" class="form-hint">Normas ISO/IEEE/NIST, leyes nacionales o reglamentos aplicables y cómo restringen o validan el diseño del sistema.</span>
+            <textarea id="box3_legal_standards" name="box3_legal_standards" rows="3" class="form-control" aria-describedby="box3_legal_standards_hint"></textarea>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- CAJA 4: Defensa de Panel - Diferenciación Metodológica (20 pts) -->
+      <fieldset id="sec-caja4" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <legend class="w-full px-5 sm:px-6 py-4 bg-usb-green text-white font-bold text-base sm:text-lg flex items-center justify-between">
+          <span>Caja 4: Defensa de Panel — Diferenciación Metodológica (Opcional según avance)</span>
+          <span class="text-xs font-bold bg-white text-usb-green px-2.5 py-1 rounded-full">20 pts</span>
+        </legend>
+
+        <div class="p-5 sm:p-6 space-y-2">
+          <div class="rounded-lg bg-emerald-50 border border-emerald-200 p-3.5 text-xs sm:text-sm text-emerald-950 mb-4">
+            <strong>Criterio de Auditoría:</strong> No confundas la metodología de desarrollo/ingeniería (ej. Scrum, Kanban, RUP, CRISP-DM, diseño electrónico) con el <strong>diseño metodológico de investigación</strong> (enfoque, alcance, diseño experimental/cuasiexperimental/descriptivo, población, muestra, hipótesis o validación científica).
+          </div>
+
+          <div class="form-field">
+            <label for="box4_methodology_diff" class="form-label">4.1 Diferenciación entre Metodología de Ingeniería/Desarrollo y Diseño Metodológico de Investigación</label>
+            <span id="box4_methodology_diff_hint" class="form-hint">Explica técnicamente en tu proyecto qué rol cumple cada una, qué produce cada una y en qué momento se articulan para validar el objetivo general.</span>
+            <textarea id="box4_methodology_diff" name="box4_methodology_diff" rows="5" class="form-control" aria-describedby="box4_methodology_diff_hint"></textarea>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- Botón de Envío -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="text-sm text-slate-600">
+          Al presionar <strong>Auditar Examen con Gemini AI</strong>, el tribunal automatizado verificará los 4 bloques y calculará tu nota sobre 100 puntos.
+        </div>
+        <button type="submit" id="submit-btn" class="w-full sm:w-auto min-h-[48px] px-7 py-3 rounded-lg bg-usb-purple hover:bg-purple-800 text-white font-bold text-base shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+          <span id="submit-spinner" class="hidden w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true"></span>
+          <span id="submit-label">Auditar Examen con Gemini AI</span>
+        </button>
+      </div>
+    </form>
+
+    <!-- Panel de Resultados de Auditoría -->
+    <section id="audit-results" class="no-print hidden space-y-6" aria-live="polite" tabindex="-1">
+      <!-- Banner Principal de Estado (<90 vs >=90) -->
+      <div id="result-banner" class="rounded-xl border-2 p-5 sm:p-6 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="space-y-1.5">
+            <div id="result-badge" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide"></div>
+            <h2 id="result-headline" class="text-xl sm:text-2xl font-extrabold"></h2>
+            <p id="result-subtext" class="text-sm sm:text-base"></p>
+          </div>
+          <div class="shrink-0 text-center px-6 py-4 rounded-xl bg-white/90 border border-slate-200 shadow-sm">
+            <div class="text-xs uppercase font-bold text-slate-500">Puntaje Final</div>
+            <div id="result-total-score" class="text-4xl font-black tracking-tight"></div>
+            <div class="text-xs font-semibold text-slate-500">de 100 puntos</div>
+          </div>
+        </div>
+
+        <!-- Hash y Botón Verde de Descarga (Solo >= 51) -->
+        <div id="approval-actions" class="hidden mt-5 pt-5 border-t border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="text-xs font-bold uppercase text-emerald-800">Código Hash de Verificación Institucional (Teams)</div>
+            <div class="flex items-center gap-2">
+              <code id="result-hash" class="px-3 py-1.5 rounded bg-white border border-emerald-300 font-mono text-base font-bold text-emerald-950 tracking-wider"></code>
+              <span class="text-xs text-emerald-800 font-medium">SHA-256 (12 chars)</span>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <button type="button" id="download-pdf-btn" class="min-h-[48px] px-5 py-3 rounded-lg bg-usb-green hover:bg-emerald-700 text-white font-bold text-sm sm:text-base shadow-sm transition-colors flex items-center gap-2">
+              <span>Descargar Certificado de Aprobación + Examen Final (PDF)</span>
+            </button>
+            <button type="button" id="print-pdf-btn" class="min-h-[48px] px-4 py-3 rounded-lg bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-semibold text-sm transition-colors">
+              Imprimir
+            </button>
+          </div>
+        </div>
+
+        <!-- Acción de Corrección (Solo <= 50) -->
+        <div id="retry-actions" class="hidden mt-5 pt-4 border-t border-red-200 flex flex-wrap items-center justify-between gap-3">
+          <p class="text-sm font-semibold text-red-900">
+            Corrige las observaciones señaladas directamente en tus respuestas arriba y vuelve a presionar <strong>Auditar Examen con Gemini AI</strong>.
+          </p>
+          <a href="#audit-form" class="min-h-[48px] inline-flex items-center px-5 py-2.5 rounded-lg bg-usb-orange hover:bg-amber-500 text-slate-950 font-bold text-sm shadow-sm">
+            Corregir respuestas en el formulario
+          </a>
+        </div>
+      </div>
+
+      <!-- Desglose por Bloques -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div class="text-xs font-bold text-usb-red uppercase">Bloque 1 — Cap. I</div>
+          <div id="score-b1" class="text-2xl font-black text-slate-900 mt-1">0 / 30</div>
+          <div class="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
+            <div id="bar-b1" class="h-full bg-usb-red transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div class="text-xs font-bold text-amber-700 uppercase">Bloque 2 — Ap. 1.6</div>
+          <div id="score-b2" class="text-2xl font-black text-slate-900 mt-1">0 / 25</div>
+          <div class="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
+            <div id="bar-b2" class="h-full bg-usb-orange transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div class="text-xs font-bold text-usb-purple uppercase">Bloque 3 — Cap. II</div>
+          <div id="score-b3" class="text-2xl font-black text-slate-900 mt-1">0 / 25</div>
+          <div class="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
+            <div id="bar-b3" class="h-full bg-usb-purple transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div class="text-xs font-bold text-usb-green uppercase">Bloque 4 — Defensa</div>
+          <div id="score-b4" class="text-2xl font-black text-slate-900 mt-1">0 / 20</div>
+          <div class="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
+            <div id="bar-b4" class="h-full bg-usb-green transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Correcciones Críticas -->
+      <div id="critical-fixes-card" class="hidden bg-white rounded-xl border-2 border-usb-orange p-5 shadow-sm">
+        <h3 class="text-base font-bold text-slate-900 mb-3">Observaciones Críticas Prioritarias</h3>
+        <ul id="critical-fixes-list" class="list-disc pl-5 space-y-1.5 text-sm text-slate-800"></ul>
+      </div>
+
+      <!-- Retroalimentación Detallada -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <article class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 class="text-sm font-bold text-usb-red uppercase mb-2">Retroalimentación Bloque 1 (Cap. I y Cuadro 6)</h3>
+          <p id="feedback-b1" class="text-sm text-slate-700 whitespace-pre-line"></p>
+        </article>
+        <article class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 class="text-sm font-bold text-amber-700 uppercase mb-2">Retroalimentación Bloque 2 (Apartado 1.6, Cuadros 3 y 8)</h3>
+          <p id="feedback-b2" class="text-sm text-slate-700 whitespace-pre-line"></p>
+        </article>
+        <article class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 class="text-sm font-bold text-usb-purple uppercase mb-2">Retroalimentación Bloque 3 (Cap. II)</h3>
+          <p id="feedback-b3" class="text-sm text-slate-700 whitespace-pre-line"></p>
+        </article>
+        <article class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <h3 class="text-sm font-bold text-usb-green uppercase mb-2">Retroalimentación Bloque 4 (Diferenciación Metodológica)</h3>
+          <p id="feedback-b4" class="text-sm text-slate-700 whitespace-pre-line"></p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Error de Servidor / Red -->
+    <div id="server-error-banner" class="no-print hidden rounded-xl border-2 border-usb-red bg-red-50 p-5 text-usb-red" role="alert">
+      <h3 class="font-bold text-base">Error al procesar la auditoría</h3>
+      <p id="server-error-msg" class="text-sm mt-1"></p>
+    </div>
+
+    <!-- Documento Certificado + Examen Final para Exportación PDF / Teams -->
+    <section id="certificate-wrapper" class="hidden space-y-3">
+      <div class="no-print flex items-center justify-between">
+        <h2 class="text-lg font-bold text-slate-900">Vista Previa del Certificado Oficial + Examen Final (Para Teams)</h2>
+        <span class="text-xs font-semibold text-usb-green bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">Habilitado</span>
+      </div>
+
+      <article id="certificate-document" class="certificate-paper rounded-xl p-6 sm:p-8 shadow-sm text-sm space-y-6">
+        <!-- Encabezado Certificado -->
+        <div class="border-b-4 border-usb-red pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 avoid-break">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-widest text-usb-purple">Universidad Salesiana de Bolivia — Ingeniería de Sistemas</div>
+            <h2 class="text-xl font-black text-slate-900 mt-1">CERTIFICADO DE APROBACIÓN METODOLÓGICA</h2>
+            <p class="text-xs text-slate-600 font-semibold">Segundo Parcial — Metodología de la Investigación II (Guía Talleres de Grado USB 2026)</p>
+          </div>
+          <div class="text-left sm:text-right border-2 border-usb-green bg-emerald-50 px-4 py-2.5 rounded-lg">
+            <div class="text-[11px] font-bold uppercase text-emerald-800">Estado de Habilitación</div>
+            <div class="text-lg font-black text-usb-green"><span id="cert-scale-label">APROBADO</span> (<span id="cert-total-score"></span>/100)</div>
+            <div class="text-xs font-mono font-bold text-slate-800">HASH: <span id="cert-hash"></span></div>
+          </div>
+        </div>
+
+        <!-- Datos de Verificación e Identificación -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 border border-slate-200 rounded-lg p-4 avoid-break">
+          <div><span class="font-bold text-slate-700">Estudiante:</span> <span id="cert-student-name"></span></div>
+          <div><span class="font-bold text-slate-700">RU (Registro Universitario):</span> <span id="cert-student-id"></span></div>
+          <div class="sm:col-span-2"><span class="font-bold text-slate-700">Título de la Investigación (Tentativo o Preliminar):</span> <span id="cert-project-title"></span></div>
+          <div><span class="font-bold text-slate-700">Modalidad:</span> <span id="cert-modality"></span></div>
+          <div><span class="font-bold text-slate-700">Fecha de Auditoría:</span> <span id="cert-date"></span></div>
+          <div class="sm:col-span-2"><span class="font-bold text-slate-700">Código Hash SHA-256:</span> <span id="cert-hash-inline" class="font-mono font-bold"></span></div>
+        </div>
+
+        <!-- Tabla Resumen de Calificación -->
+        <div class="avoid-break">
+          <h3 class="text-sm font-bold uppercase text-slate-900 mb-2">Desglose de Evaluación del Auditor</h3>
+          <table class="w-full border-collapse border border-slate-300 text-xs">
+            <thead>
+              <tr class="bg-slate-100 text-slate-900">
+                <th class="border border-slate-300 px-3 py-2 text-left">Bloque Evaluado</th>
+                <th class="border border-slate-300 px-3 py-2 text-center w-24">Puntaje</th>
+                <th class="border border-slate-300 px-3 py-2 text-left">Dictamen del Auditor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="border border-slate-300 px-3 py-2 font-semibold">Bloque 1: Cap. I y Trazabilidad (Cuadro 6)</td>
+                <td id="cert-b1-score" class="border border-slate-300 px-3 py-2 text-center font-bold"></td>
+                <td id="cert-b1-feedback" class="border border-slate-300 px-3 py-2"></td>
+              </tr>
+              <tr>
+                <td class="border border-slate-300 px-3 py-2 font-semibold">Bloque 2: Solución y Viabilidad (Ap. 1.6)</td>
+                <td id="cert-b2-score" class="border border-slate-300 px-3 py-2 text-center font-bold"></td>
+                <td id="cert-b2-feedback" class="border border-slate-300 px-3 py-2"></td>
+              </tr>
+              <tr>
+                <td class="border border-slate-300 px-3 py-2 font-semibold">Bloque 3: Fundamentación (Cap. II)</td>
+                <td id="cert-b3-score" class="border border-slate-300 px-3 py-2 text-center font-bold"></td>
+                <td id="cert-b3-feedback" class="border border-slate-300 px-3 py-2"></td>
+              </tr>
+              <tr>
+                <td class="border border-slate-300 px-3 py-2 font-semibold">Bloque 4: Defensa Metodológica</td>
+                <td id="cert-b4-score" class="border border-slate-300 px-3 py-2 text-center font-bold"></td>
+                <td id="cert-b4-feedback" class="border border-slate-300 px-3 py-2"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Examen Completo Respondido -->
+        <div id="cert-exam-responses" class="space-y-4 pt-2 border-t border-slate-300">
+          <h3 class="text-base font-bold uppercase text-usb-purple">Registro Completo del Examen Final Respondido</h3>
+          <div id="cert-answers-body" class="space-y-4"></div>
+        </div>
+      </article>
+    </section>
+
+  </main>
+
+  <footer class="no-print bg-white border-t border-slate-200 mt-12 py-5 text-center text-xs text-slate-500">
+    Auditor Metodológico USB — Segundo Parcial Metodología de la Investigación II &bull; Ingeniería de Sistemas (Guía 2026)
+  </footer>
+
+</body>
+</html>

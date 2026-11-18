@@ -1,0 +1,430 @@
+'use strict';
+
+const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+
+const ROOT_DIR = __dirname;
+const PORT = Number(process.env.PORT) || 3000;
+const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
+const SYSTEM_INSTRUCTION = `Eres el Auditor Metodológico Estricto de Ingeniería de Sistemas (Guía Talleres de Grado USB 2026). Evalúa con alto rigor académico.
+REGLAS DE PENALIZACIÓN:
+1. Si los objetivos específicos usan verbos de tareas técnicas operativas ('programar', 'instalar', 'configurar', 'hacer encuestas', 'codificar') en lugar de resultados verificables, resta 15 puntos en el Bloque 1.
+2. Si confunde actividades ('hacer entrevistas') con Evidencia tangible en la trazabilidad de objetivos, resta 10 puntos.
+3. Si no define límites del sistema o métricas reales de ingeniería (latencia, precisión, tiempos de proceso, etc.), resta 10 puntos en el Bloque 2.
+4. Si el marco teórico son definiciones genéricas desconectadas del problema o no identifica el vacío del estado del arte, resta 10 puntos en el Bloque 3.
+5. Si confunde metodología de desarrollo de software (ej. Scrum) con el diseño metodológico de investigación, resta 15 puntos en el Bloque 4.
+PROHIBICIÓN ABSOLUTA: Nunca redactes la respuesta corregida por el estudiante. Solo señala qué falla metodológica tiene según la Guía y qué debe reformular por su cuenta.`;
+
+const REQUIRED_FIELDS = [
+  'student_name', 'student_id', 'project_title', 'modality'
+];
+
+const OPTIONAL_FIELDS = [
+  'box1_symptom', 'box1_cause', 'box1_effect', 'box1_general_question', 'box1_general_objective',
+  'oe1_text', 'oe1_evidence', 'oe1_source', 'oe1_criteria',
+  'oe2_text', 'oe2_evidence', 'oe2_source', 'oe2_criteria',
+  'oe3_text', 'oe3_evidence', 'oe3_source', 'oe3_criteria',
+  'box2_system_limits', 'box2_actors', 'box2_components', 'box2_engineering_metrics', 'box2_ethics_access',
+  'box3_antecedent1', 'box3_antecedent2', 'box3_guiding_theory', 'box3_tech_foundation', 'box3_legal_standards',
+  'box4_methodology_diff'
+];
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.ico': 'image/x-icon'
+};
+
+const loadDotEnv = (filePath) => {
+  const vars = {};
+  if (!fs.existsSync(filePath)) return vars;
+  const content = fs.readFileSync(filePath, 'utf8');
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eqIndex = line.indexOf('=');
+    if (eqIndex === -1) continue;
+    const key = line.slice(0, eqIndex).trim();
+    let val = line.slice(eqIndex + 1).trim();
+    val = val.replace(/^["']|["']$/g, '');
+    vars[key] = val;
+  }
+  return vars;
+};
+
+const dotEnv = loadDotEnv(path.join(ROOT_DIR, '.env'));
+
+const getEnv = (key, fallback = '') => {
+  const v = process.env[key];
+  if (typeof v === 'string' && v.trim() !== '') return v.trim();
+  if (typeof dotEnv[key] === 'string' && dotEnv[key].trim() !== '') return dotEnv[key].trim();
+  return fallback;
+};
+
+const getApiKeysPool = () => {
+  const raw = getEnv('GEMINI_API_KEYS') || getEnv('GEMINI_API_KEY');
+  const keys = raw
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean);
+
+  // Fisher-Yates shuffle for random key rotation
+  for (let i = keys.length - 1; i > 0; i--) {
+    const j = crypto.randomInt(0, i + 1);
+    [keys[i], keys[j]] = [keys[j], keys[i]];
+  }
+  return keys;
+};
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const sendJson = (res, statusCode, data) => {
+  const body = JSON.stringify(data);
+  res.writeHead(statusCode, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Length': Buffer.byteLength(body)
+  });
+  res.end(body);
+};
+
+const readRequestBody = (req, maxBytes = 1024 * 512) =>
+  new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    req.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > maxBytes) {
+        reject(new Error('Payload demasiado grande.'));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+
+const buildUserPrompt = (d) => `Audita el siguiente examen del Segundo Parcial de Metodología de la Investigación II (Guía Talleres de Grado USB 2026).
+Asigna los puntajes estrictos dentro de estos rangos máximos exactos:
+- block1_score: entero entre 0 y 30 (Cap. I y Cuadro 6)
+- block2_score: entero entre 0 y 25 (Apartado 1.6, Cuadro 3 y Cuadro 8)
+- block3_score: entero entre 0 y 25 (Cap. II: 2.1.2, 2.2.1, 2.2.2, 2.3.2)
+- block4_score: entero entre 0 y 20 (Defensa de Panel: diferenciación metodológica)
+- total_score: suma exacta de los 4 bloques (0 a 100)
+- Escala de habilitación: 100 Distinguido con Honores | 90-99 Excelente | 80-89 Muy Bueno | 70-79 Bueno | 51-69 Aprobado | <=50 Reprobado
+- approved: true si total_score >= 51
+- IMPORTANTE: Solo los datos de identificación son obligatorios. Las Cajas 1 a 4 son opcionales según el avance del estudiante; evalúa estrictamente lo respondido y asigna 0 puntos a cualquier apartado o bloque marcado como '[No respondido / Sin avance registrado]'.
+
+DATOS DEL ESTUDIANTE Y DE LA INVESTIGACIÓN:
+- Estudiante: ${d.student_name} (RU / Registro Universitario: ${d.student_id})
+- Título de la Investigación (Tentativo o Preliminar): ${d.project_title}
+- Modalidad: ${d.modality}
+
+=== CAJA 1: CAP. I — PROBLEMA Y TRAZABILIDAD DE OBJETIVOS (Máximo 30 pts) ===
+- Síntoma con evidencia empírica (Problema): ${d.box1_symptom}
+- Causa: ${d.box1_cause}
+- Efecto: ${d.box1_effect}
+- Pregunta General: ${d.box1_general_question}
+- Objetivo General: ${d.box1_general_objective}
+- Matriz Cuadro 6:
+  * OE1: ${d.oe1_text}
+    - Evidencia requerida: ${d.oe1_evidence}
+    - Fuente/Procedimiento: ${d.oe1_source}
+    - Criterio de análisis: ${d.oe1_criteria}
+  * OE2: ${d.oe2_text}
+    - Evidencia requerida: ${d.oe2_evidence}
+    - Fuente/Procedimiento: ${d.oe2_source}
+    - Criterio de análisis: ${d.oe2_criteria}
+  * OE3: ${d.oe3_text}
+    - Evidencia requerida: ${d.oe3_evidence}
+    - Fuente/Procedimiento: ${d.oe3_source}
+    - Criterio de análisis: ${d.oe3_criteria}
+
+=== CAJA 2: APARTADO 1.6 — IDEA PRELIMINAR DE SOLUCIÓN Y VIABILIDAD (Máximo 25 pts) ===
+- Límites del sistema (alcance y exclusiones): ${d.box2_system_limits}
+- Actores: ${d.box2_actors}
+- Componentes: ${d.box2_components}
+- Métricas técnicas de ingeniería (Cuadro 3): ${d.box2_engineering_metrics}
+- Supuestos, permisos éticos y acceso (Cuadro 8): ${d.box2_ethics_access}
+
+=== CAJA 3: CAP. II — FUNDAMENTACIÓN TEÓRICA, ESTADO DEL ARTE Y LEGAL (Máximo 25 pts) ===
+- Antecedente 1 y vacío explícito (2.1.2): ${d.box3_antecedent1}
+- Antecedente 2 y vacío explícito (2.1.2): ${d.box3_antecedent2}
+- Teoría o modelo rector conectado a variables/requerimientos (2.2.1): ${d.box3_guiding_theory}
+- Fundamento tecnológico (2.2.2): ${d.box3_tech_foundation}
+- Normativa o estándar aplicable (2.3.2): ${d.box3_legal_standards}
+
+=== CAJA 4: DEFENSA DE PANEL — DIFERENCIACIÓN METODOLÓGICA (Máximo 20 pts) ===
+- Respuesta técnica: ${d.box4_methodology_diff}`;
+
+const getScaleLabel = (score) => {
+  if (score >= 100) return 'Distinguido con Honores';
+  if (score >= 90) return 'Excelente';
+  if (score >= 80) return 'Muy Bueno';
+  if (score >= 70) return 'Bueno';
+  if (score >= 51) return 'Aprobado';
+  return 'Reprobado';
+};
+
+const clampScore = (val, min, max) => {
+  const n = Math.round(Number(val) || 0);
+  return Math.max(min, Math.min(max, n));
+};
+
+const handleEvaluate = async (req, res) => {
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { error: 'Método no permitido. Utiliza POST.' });
+    return;
+  }
+
+  const apiKeys = getApiKeysPool();
+  if (apiKeys.length === 0) {
+    sendJson(res, 500, {
+      error: 'Configuración incompleta en el servidor: define GEMINI_API_KEYS o GEMINI_API_KEY.'
+    });
+    return;
+  }
+
+  let input = {};
+  try {
+    const raw = await readRequestBody(req);
+    input = JSON.parse(raw);
+  } catch {
+    sendJson(res, 400, { error: 'El cuerpo de la petición debe ser JSON válido.' });
+    return;
+  }
+
+  const cleanData = {};
+  const missing = [];
+  for (const field of REQUIRED_FIELDS) {
+    const val = typeof input[field] === 'string' ? input[field].trim() : '';
+    if (!val) missing.push(field);
+    cleanData[field] = val;
+  }
+
+  for (const field of OPTIONAL_FIELDS) {
+    const val = typeof input[field] === 'string' ? input[field].trim() : '';
+    cleanData[field] = val || '[No respondido / Sin avance registrado]';
+  }
+
+  if (missing.length > 0) {
+    sendJson(res, 400, {
+      error: 'Faltan campos obligatorios en la sección "0. Identificación del Estudiante y del Proyecto".',
+      missing_fields: missing
+    });
+    return;
+  }
+
+  const geminiPayload = {
+    systemInstruction: {
+      parts: [{ text: SYSTEM_INSTRUCTION }]
+    },
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: buildUserPrompt(cleanData) }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.15,
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          total_score: { type: 'INTEGER' },
+          block1_score: { type: 'INTEGER' },
+          block1_feedback: { type: 'STRING' },
+          block2_score: { type: 'INTEGER' },
+          block2_feedback: { type: 'STRING' },
+          block3_score: { type: 'INTEGER' },
+          block3_feedback: { type: 'STRING' },
+          block4_score: { type: 'INTEGER' },
+          block4_feedback: { type: 'STRING' },
+          critical_fixes_needed: {
+            type: 'ARRAY',
+            items: { type: 'STRING' }
+          },
+          approved: { type: 'BOOLEAN' }
+        },
+        required: [
+          'total_score',
+          'block1_score', 'block1_feedback',
+          'block2_score', 'block2_feedback',
+          'block3_score', 'block3_feedback',
+          'block4_score', 'block4_feedback',
+          'critical_fixes_needed',
+          'approved'
+        ]
+      }
+    }
+  };
+
+  const maxAttempts = 3;
+  const baseWaitMs = 3000;
+  let lastStatus = 0;
+  let lastError = '';
+  let geminiResult = null;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const apiKey = apiKeys[attempt % apiKeys.length];
+    try {
+      const response = await fetch(GEMINI_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
+        body: JSON.stringify(geminiPayload),
+        signal: AbortSignal.timeout(45000)
+      });
+
+      lastStatus = response.status;
+      if (response.ok) {
+        const data = await response.json();
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const parsed = JSON.parse(rawText);
+        if (parsed && typeof parsed === 'object') {
+          geminiResult = parsed;
+          break;
+        }
+        lastError = 'La respuesta de Gemini no devolvió un JSON válido.';
+      } else {
+        lastError = `HTTP ${response.status} al consultar Gemini API.`;
+      }
+    } catch (err) {
+      lastStatus = 0;
+      lastError = err instanceof Error ? err.message : 'Error de red al consultar Gemini API.';
+    }
+
+    const shouldRetry = lastStatus === 429 || lastStatus === 503 || lastStatus === 500 || lastStatus === 0;
+    if (shouldRetry && attempt < maxAttempts - 1) {
+      const waitMs = baseWaitMs * (2 ** attempt); // 3000ms, luego 6000ms
+      await sleep(waitMs);
+      continue;
+    }
+    break;
+  }
+
+  if (!geminiResult) {
+    sendJson(res, lastStatus === 429 ? 429 : 502, {
+      error: 'No se pudo completar la evaluación con Gemini API tras los reintentos configurados.',
+      detail: lastError
+    });
+    return;
+  }
+
+  const b1 = clampScore(geminiResult.block1_score, 0, 30);
+  const b2 = clampScore(geminiResult.block2_score, 0, 25);
+  const b3 = clampScore(geminiResult.block3_score, 0, 25);
+  const b4 = clampScore(geminiResult.block4_score, 0, 20);
+  const totalScore = b1 + b2 + b3 + b4;
+  const approved = totalScore >= 51;
+  const scaleLabel = getScaleLabel(totalScore);
+
+  const criticalFixes = Array.isArray(geminiResult.critical_fixes_needed)
+    ? geminiResult.critical_fixes_needed.map((s) => String(s).trim()).filter(Boolean)
+    : [];
+
+  const evaluatedAt = new Date().toISOString();
+  const payloadOut = {
+    total_score: totalScore,
+    scale_label: scaleLabel,
+    block1_score: b1,
+    block1_feedback: String(geminiResult.block1_feedback || ''),
+    block2_score: b2,
+    block2_feedback: String(geminiResult.block2_feedback || ''),
+    block3_score: b3,
+    block3_feedback: String(geminiResult.block3_feedback || ''),
+    block4_score: b4,
+    block4_feedback: String(geminiResult.block4_feedback || ''),
+    critical_fixes_needed: criticalFixes,
+    approved,
+    evaluated_at: evaluatedAt
+  };
+
+  if (approved) {
+    const secretSalt = getEnv('SECRET_SALT', 'USB_METODOLOGIA_II_2026_CAMBIAR_EN_PROD');
+    const dateKey = evaluatedAt.slice(0, 10);
+    const hashSource = `${cleanData.student_name}|${totalScore}|${dateKey}|${secretSalt}`;
+    payloadOut.verification_hash = crypto
+      .createHash('sha256')
+      .update(hashSource)
+      .digest('hex')
+      .slice(0, 12)
+      .toUpperCase();
+  }
+
+  sendJson(res, 200, payloadOut);
+};
+
+const PUBLIC_FILES = new Set(['/', '/index.html', '/styles.css', '/app.js']);
+
+const serveStatic = (req, res, urlPath) => {
+  if (!PUBLIC_FILES.has(urlPath)) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('No encontrado');
+    return;
+  }
+
+  const relativePath = urlPath === '/' ? 'index.html' : urlPath.slice(1);
+  const fullPath = path.join(ROOT_DIR, relativePath);
+  const ext = path.extname(fullPath);
+
+  fs.readFile(fullPath, (err, content) => {
+    if (err) {
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Error leyendo el archivo solicitado');
+      return;
+    }
+    res.writeHead(200, {
+      'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
+      'X-Content-Type-Options': 'nosniff'
+    });
+    res.end(content);
+  });
+};
+
+const handleRequest = async (req, res) => {
+  const reqUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+  if (reqUrl.pathname === '/health') {
+    sendJson(res, 200, { status: 'ok' });
+    return;
+  }
+
+  if (reqUrl.pathname === '/evaluate.php' || reqUrl.pathname === '/api/evaluate') {
+    await handleEvaluate(req, res);
+    return;
+  }
+
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Método no permitido');
+    return;
+  }
+
+  serveStatic(req, res, reqUrl.pathname);
+};
+
+const server = http.createServer(handleRequest);
+
+if (require.main === module) {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Auditor Metodológico USB activo en http://0.0.0.0:${PORT}`);
+  });
+}
+
+module.exports = { handleRequest, server };
