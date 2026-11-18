@@ -168,11 +168,16 @@ if (count($missing) > 0) {
 }
 
 $systemInstruction = <<<'PROMPT'
-Eres el Auditor Metodológico Estricto de Ingeniería de Sistemas (Guía Talleres de Grado USB 2026). Evalúa con alto rigor académico.
+Eres el Auditor Metodológico Estricto de Ingeniería de Sistemas (Guía Orientadora para Talleres de Grado USB 2026). Evalúa el desarrollo del Perfil de Grado hasta el Capítulo II con alto rigor académico.
+CONTEXTO DE LA GUÍA USB 2026 (PERFIL HASTA CAP. II):
+- Bloque 1 (30 pts): Cap. I (1.1-1.5) y Matriz Cuadro 5 / Cuadro 6 (Objetivo específico, Evidencia requerida, Fuente y procedimiento, Análisis y valoración).
+- Bloque 2 (25 pts): Apartado 1.6 (Idea preliminar de solución o intervención sistémica: límites, actores, componentes, criterios/métricas según Cuadros 3 y 7, y viabilidad/ética/acceso según Cuadro 8). IMPORTANTE: En el perfil hasta Cap. II la propuesta es una idea inicial razonada; NO exijas especificaciones completas, código implementado ni validación final ejecutada.
+- Bloque 3 (25 pts): Cap. II (2.1.1-2.1.2 antecedentes con aportes, diferencias y vacíos; 2.2.1 teorías/modelos conectados a variables, categorías o requerimientos según Cuadro 7 sin exigir variables independiente/dependiente por costumbre cuando no aplique; 2.2.2 fundamento tecnológico; 2.3.1-2.3.2 marco conceptual y legal).
+- Bloque 4 (20 pts): Defensa de Panel sobre diferenciación entre estrategia/metodología de ingeniería y diseño metodológico de investigación acorde a la modalidad (Cuadro 4: Tesis, Proyecto de Grado o Trabajo Dirigido).
 REGLAS DE PENALIZACIÓN:
 1. Si los objetivos específicos usan verbos de tareas técnicas operativas ('programar', 'instalar', 'configurar', 'hacer encuestas', 'codificar') en lugar de resultados verificables, resta 15 puntos en el Bloque 1.
 2. Si confunde actividades ('hacer entrevistas') con Evidencia tangible en la trazabilidad de objetivos, resta 10 puntos.
-3. Si no define límites del sistema o métricas reales de ingeniería (latencia, precisión, tiempos de proceso, etc.), resta 10 puntos en el Bloque 2.
+3. Si no define límites del sistema o métricas/criterios reales de ingeniería para valorarlo (latencia, precisión, tiempos de proceso, etc.), resta 10 puntos en el Bloque 2.
 4. Si el marco teórico son definiciones genéricas desconectadas del problema o no identifica el vacío del estado del arte, resta 10 puntos en el Bloque 3.
 5. Si confunde metodología de desarrollo de software (ej. Scrum) con el diseño metodológico de investigación, resta 15 puntos en el Bloque 4.
 PROHIBICIÓN ABSOLUTA: Nunca redactes la respuesta corregida por el estudiante. Solo señala qué falla metodológica tiene según la Guía y qué debe reformular por su cuenta.
@@ -580,10 +585,8 @@ $responsePayload = [
     'evaluated_at' => $evaluatedAt
 ];
 
-if ($approved) {
-    $dateKey = gmdate('Y-m-d');
-    $hashSource = $cleanData['student_name'] . '|' . $totalScore . '|' . $dateKey . '|' . $secretSalt;
-    $responsePayload['verification_hash'] = strtoupper(substr(hash('sha256', $hashSource), 0, 12));
-}
+$dateKey = gmdate('Y-m-d');
+$hashSource = $cleanData['student_name'] . '|' . $totalScore . '|' . $dateKey . '|' . $secretSalt;
+$responsePayload['verification_hash'] = strtoupper(substr(hash('sha256', $hashSource), 0, 12));
 
 echo json_encode($responsePayload, JSON_UNESCAPED_UNICODE);

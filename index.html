@@ -23,7 +23,7 @@
     };
   </script>
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body class="min-h-screen flex flex-col antialiased">
@@ -32,23 +32,24 @@
   <header class="no-print bg-white border-b-4 border-usb-red shadow-sm sticky top-0 z-30">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div class="flex items-start sm:items-center gap-3">
-        <div class="w-11 h-11 rounded-lg bg-usb-red text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-sm" aria-hidden="true">
-          USB
-        </div>
+        <img src="logousb_blue.png" alt="Logo Universidad Salesiana de Bolivia" class="h-11 w-auto object-contain shrink-0">
         <div>
           <h1 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
             Auditor Metodológico USB
           </h1>
           <p class="text-xs sm:text-sm text-slate-600 font-medium">
-            Segundo Parcial — Metodología de la Investigación II (Guía Talleres de Grado USB 2026)
+            Segundo Parcial — Metodología de la Investigación II &bull; Perfil hasta Capítulo II (Guía USB 2026)
           </p>
         </div>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
+        <a href="guia-orientadora-talleres-grado-paneles.pdf" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-900 border border-blue-200 hover:bg-blue-100 transition-colors">
+          Guía Orientadora USB 2026 (PDF)
+        </a>
         <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-50 text-usb-purple border border-purple-200">
           <span class="w-2 h-2 rounded-full bg-usb-purple" aria-hidden="true"></span>
-          Umbral de Habilitación: &ge; 51 / 100 pts
+          Habilitación: &ge; 51 / 100 pts
         </span>
         <span id="draft-status" class="text-xs text-slate-500 font-medium px-2 py-1" aria-live="polite">
           Borrador local activo
@@ -89,7 +90,7 @@
             Protocolo de Evaluación Rigurosa
           </h2>
           <p class="text-sm text-slate-600">
-            Completa la sección <strong>0. Identificación del Estudiante y del Proyecto</strong> (obligatoria) y responde en las <strong>Cajas 1 a 4</strong> todo lo que tengas claro o avanzado según la nota a la que aspires, conforme a la <strong>Guía de Talleres de Grado USB 2026</strong>. Con <strong>&ge; 51 puntos</strong> habilitas el Certificado + Examen Final en PDF para subirlo a Microsoft Teams.
+            Este instrumento evalúa el <strong>desarrollo del Perfil de Grado hasta el Capítulo II</strong> conforme a la <strong>Guía Orientadora para Talleres de Grado USB 2026</strong>. Completa la sección <strong>0. Identificación del Estudiante y del Proyecto</strong> (obligatoria) y responde en las <strong>Cajas 1 a 4</strong> tu avance según la nota a la que aspires. Al auditar, siempre podrás <strong>descargar el informe y tu perfil completo en PDF</strong> con su código Hash de verificación para Microsoft Teams.
           </p>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0 text-center text-xs font-semibold">
@@ -337,7 +338,7 @@
 
         <div class="p-5 sm:p-6 space-y-2">
           <div class="rounded-lg bg-amber-50 border border-amber-200 p-3.5 text-xs sm:text-sm text-amber-950 mb-4">
-            <strong>Criterio de Auditoría:</strong> Delimita claramente qué incluye y qué excluye el sistema (alcance/exclusiones) y formula métricas reales de ingeniería (Cuadro 3: latencia, F1-score, precisión, throughput, tiempos de proceso, etc.) junto con permisos éticos y acceso (Cuadro 8).
+            <strong>Criterio de Auditoría (Perfil hasta Cap. II — Pág. 11 de la Guía):</strong> En el perfil la propuesta es una <strong>idea inicial razonada</strong> (no exige aún especificaciones completas, código implementado ni validación final). Delimita qué incluye y excluye el sistema (1.6.1), sus actores y componentes (1.6.2), métricas/criterios para valorarlo (Cuadros 3 y 7) y permisos éticos/acceso (Cuadro 8).
           </div>
 
           <div class="form-field">
@@ -401,8 +402,8 @@
           </div>
 
           <div class="form-field">
-            <label for="box3_guiding_theory" class="form-label">3.3 Teoría o Modelo Rector Conectado a Variables/Requerimientos (Apartado 2.2.1)</label>
-            <span id="box3_guiding_theory_hint" class="form-hint">Explica qué teoría, modelo matemático o paradigma sustenta tus variables dependientes/independientes o requerimientos arquitectónicos.</span>
+            <label for="box3_guiding_theory" class="form-label">3.3 Teoría o Modelo Rector Conectado a Variables, Categorías o Requerimientos (Apartado 2.2.1)</label>
+            <span id="box3_guiding_theory_hint" class="form-hint">Según el Cuadro 7 de la Guía: conecta la teoría o modelo con variables (cuantitativo), categorías (cualitativo) o requerimientos y métricas (proyecto aplicado/ingeniería).</span>
             <textarea id="box3_guiding_theory" name="box3_guiding_theory" rows="3" class="form-control" aria-describedby="box3_guiding_theory_hint"></textarea>
           </div>
 
@@ -469,18 +470,18 @@
           </div>
         </div>
 
-        <!-- Hash y Botón Verde de Descarga (Solo >= 51) -->
-        <div id="approval-actions" class="hidden mt-5 pt-5 border-t border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <!-- Hash y Botón Verde de Descarga (Disponible en toda auditoría) -->
+        <div id="approval-actions" class="hidden mt-5 pt-5 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div class="space-y-1">
-            <div class="text-xs font-bold uppercase text-emerald-800">Código Hash de Verificación Institucional (Teams)</div>
+            <div class="text-xs font-bold uppercase text-slate-700">Código Hash de Verificación Institucional (Teams)</div>
             <div class="flex items-center gap-2">
-              <code id="result-hash" class="px-3 py-1.5 rounded bg-white border border-emerald-300 font-mono text-base font-bold text-emerald-950 tracking-wider"></code>
-              <span class="text-xs text-emerald-800 font-medium">SHA-256 (12 chars)</span>
+              <code id="result-hash" class="px-3 py-1.5 rounded bg-white border border-slate-300 font-mono text-base font-bold text-slate-900 tracking-wider"></code>
+              <span class="text-xs text-slate-600 font-medium">SHA-256 (12 chars)</span>
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-3">
             <button type="button" id="download-pdf-btn" class="min-h-[48px] px-5 py-3 rounded-lg bg-usb-green hover:bg-emerald-700 text-white font-bold text-sm sm:text-base shadow-sm transition-colors flex items-center gap-2">
-              <span>Descargar Certificado de Aprobación + Examen Final (PDF)</span>
+              <span>Descargar Informe + Perfil Evaluado (PDF)</span>
             </button>
             <button type="button" id="print-pdf-btn" class="min-h-[48px] px-4 py-3 rounded-lg bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-semibold text-sm transition-colors">
               Imprimir
@@ -570,21 +571,22 @@
     <!-- Documento Certificado + Examen Final para Exportación PDF / Teams -->
     <section id="certificate-wrapper" class="hidden space-y-3">
       <div class="no-print flex items-center justify-between">
-        <h2 class="text-lg font-bold text-slate-900">Vista Previa del Certificado Oficial + Examen Final (Para Teams)</h2>
-        <span class="text-xs font-semibold text-usb-green bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">Habilitado</span>
+        <h2 class="text-lg font-bold text-slate-900">Vista Previa del Informe Oficial + Perfil Evaluado (Para Teams)</h2>
+        <span id="cert-preview-pill" class="text-xs font-semibold text-usb-green bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">Listo para PDF</span>
       </div>
 
       <article id="certificate-document" class="certificate-paper rounded-xl p-6 sm:p-8 shadow-sm text-sm space-y-6">
         <!-- Encabezado Certificado -->
         <div class="border-b-4 border-usb-red pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 avoid-break">
-          <div>
+          <div class="space-y-1">
+            <img id="cert-logo-img" src="logousb_blue.png" alt="Logo Universidad Salesiana de Bolivia" class="h-12 w-auto object-contain mb-1">
             <div class="text-xs font-bold uppercase tracking-widest text-usb-purple">Universidad Salesiana de Bolivia — Ingeniería de Sistemas</div>
-            <h2 class="text-xl font-black text-slate-900 mt-1">CERTIFICADO DE APROBACIÓN METODOLÓGICA</h2>
-            <p class="text-xs text-slate-600 font-semibold">Segundo Parcial — Metodología de la Investigación II (Guía Talleres de Grado USB 2026)</p>
+            <h2 class="text-xl font-black text-slate-900 mt-1">INFORME DE AUDITORÍA METODOLÓGICA Y PERFIL</h2>
+            <p class="text-xs text-slate-600 font-semibold">Segundo Parcial — Metodología de la Investigación II &bull; Perfil hasta Capítulo II (Guía USB 2026)</p>
           </div>
-          <div class="text-left sm:text-right border-2 border-usb-green bg-emerald-50 px-4 py-2.5 rounded-lg">
-            <div class="text-[11px] font-bold uppercase text-emerald-800">Estado de Habilitación</div>
-            <div class="text-lg font-black text-usb-green"><span id="cert-scale-label">APROBADO</span> (<span id="cert-total-score"></span>/100)</div>
+          <div id="cert-status-box" class="text-left sm:text-right border-2 border-usb-green bg-emerald-50 px-4 py-2.5 rounded-lg shrink-0">
+            <div class="text-[11px] font-bold uppercase text-slate-700">Resultado de Auditoría</div>
+            <div id="cert-status-text" class="text-lg font-black text-usb-green"><span id="cert-scale-label">APROBADO</span> (<span id="cert-total-score"></span>/100)</div>
             <div class="text-xs font-mono font-bold text-slate-800">HASH: <span id="cert-hash"></span></div>
           </div>
         </div>

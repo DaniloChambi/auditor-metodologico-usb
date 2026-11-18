@@ -277,39 +277,105 @@
       criticalFixesCard.classList.add('hidden');
     }
 
-    // State styling (<= 50 Reprobado vs >= 51 Habilitado)
+    // State styling (<= 50 Reprobado vs >= 51 Habilitado) — PDF siempre disponible
     resultBanner.className = 'rounded-xl border-2 p-5 sm:p-6 shadow-sm';
+    resultHash.textContent = result.verification_hash || 'N/A';
+    approvalActions.classList.remove('hidden');
+
     if (approved) {
       resultBanner.classList.add('border-usb-green', 'bg-emerald-50', 'text-emerald-950');
       resultBadge.className = 'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-usb-green text-white';
       resultBadge.textContent = `${scaleLabel} — Habilitado (>= 51 pts)`;
-      resultHeadline.textContent = `¡Dictamen Favorable (${scaleLabel})! Certificado desbloqueado para Microsoft Teams`;
-      resultSubtext.textContent = 'Tu examen cumple con el umbral de habilitación establecido. Descarga el PDF oficial con el código Hash y súbelo a la Tarea de Teams (revisa también las sugerencias si deseas elevar aún más tu calificación).';
+      resultHeadline.textContent = `¡Dictamen Favorable (${scaleLabel})! Informe y Perfil listos para descargar`;
+      resultSubtext.textContent = 'Tu evaluación fue completada. Descarga el PDF oficial con el desglose, código Hash y tu Perfil hasta el Capítulo II para subirlo a Microsoft Teams.';
       resultTotalScore.className = 'text-4xl font-black tracking-tight text-usb-green';
-
-      resultHash.textContent = result.verification_hash || 'N/A';
-      approvalActions.classList.remove('hidden');
       retryActions.classList.add('hidden');
-
-      populateCertificate(result, payload);
-      certificateWrapper.classList.remove('hidden');
     } else {
       resultBanner.classList.add('border-usb-red', 'bg-red-50', 'text-red-950');
       resultBadge.className = 'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-usb-red text-white';
-      resultBadge.textContent = `${scaleLabel} (${total}/100 — Requiere >= 51)`;
-      resultHeadline.textContent = `Auditoría: ${scaleLabel} — Se requiere reformulación metodológica`;
-      resultSubtext.textContent = `Te faltan ${Math.max(1, 51 - total)} puntos para alcanzar el umbral mínimo de habilitación (51/100 - Aprobado). Revisa las penalizaciones de cada bloque, corrige directamente en el formulario y vuelve a auditar.`;
+      resultBadge.textContent = `${scaleLabel} (${total}/100 — Umbral >= 51)`;
+      resultHeadline.textContent = `Auditoría: ${scaleLabel} — Puedes corregir o descargar tu informe en PDF`;
+      resultSubtext.textContent = `Obtuviste ${total}/100 puntos. Puedes corregir tus respuestas arriba y volver a auditar para mejorar tu nota, o descargar ahora el PDF con el dictamen actual y su código Hash.`;
       resultTotalScore.className = 'text-4xl font-black tracking-tight text-usb-red';
-
-      approvalActions.classList.add('hidden');
       retryActions.classList.remove('hidden');
-      certificateWrapper.classList.add('hidden');
     }
+
+    populateCertificate(result, payload);
+    certificateWrapper.classList.remove('hidden');
 
     auditResults.classList.remove('hidden');
     auditResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
     auditResults.focus({ preventScroll: true });
   };
+
+  /**
+   * Returns structured profile sections (shared between HTML preview and vector PDF generator).
+   */
+  const getProfileSections = (p) => [
+    [
+      'Caja 1: Capítulo I — Problema y Trazabilidad de Objetivos (30 pts)',
+      [
+        ['1.1 Síntoma con evidencia empírica (Problema)', p.box1_symptom],
+        ['1.2 Causa raíz', p.box1_cause],
+        ['1.3 Efecto / Pronóstico', p.box1_effect],
+        ['1.4 Pregunta General', p.box1_general_question],
+        ['1.5 Objetivo General', p.box1_general_objective]
+      ]
+    ],
+    [
+      'Cuadro 6 — Objetivo Específico 1 (OE1)',
+      [
+        ['Objetivo Específico 1', p.oe1_text],
+        ['Evidencia requerida', p.oe1_evidence],
+        ['Fuente / Procedimiento', p.oe1_source],
+        ['Criterio de análisis', p.oe1_criteria]
+      ]
+    ],
+    [
+      'Cuadro 6 — Objetivo Específico 2 (OE2)',
+      [
+        ['Objetivo Específico 2', p.oe2_text],
+        ['Evidencia requerida', p.oe2_evidence],
+        ['Fuente / Procedimiento', p.oe2_source],
+        ['Criterio de análisis', p.oe2_criteria]
+      ]
+    ],
+    [
+      'Cuadro 6 — Objetivo Específico 3 (OE3)',
+      [
+        ['Objetivo Específico 3', p.oe3_text],
+        ['Evidencia requerida', p.oe3_evidence],
+        ['Fuente / Procedimiento', p.oe3_source],
+        ['Criterio de análisis', p.oe3_criteria]
+      ]
+    ],
+    [
+      'Caja 2: Apartado 1.6 — Idea Preliminar de Solución y Viabilidad (25 pts)',
+      [
+        ['2.1 Límites del sistema (alcance y exclusiones)', p.box2_system_limits],
+        ['2.2 Actores', p.box2_actors],
+        ['2.3 Componentes', p.box2_components],
+        ['2.4 Métricas técnicas de ingeniería (Cuadros 3 y 7)', p.box2_engineering_metrics],
+        ['2.5 Supuestos, permisos éticos y acceso (Cuadro 8)', p.box2_ethics_access]
+      ]
+    ],
+    [
+      'Caja 3: Capítulo II — Fundamentación Teórica, Estado del Arte y Legal (25 pts)',
+      [
+        ['3.1 Antecedente 1 y vacío explícito (2.1.2)', p.box3_antecedent1],
+        ['3.2 Antecedente 2 y vacío explícito (2.1.2)', p.box3_antecedent2],
+        ['3.3 Teoría / Modelo rector conectado a variables, categorías o requerimientos (2.2.1)', p.box3_guiding_theory],
+        ['3.4 Fundamento tecnológico (2.2.2)', p.box3_tech_foundation],
+        ['3.5 Normativa y estándar aplicable (2.3.2)', p.box3_legal_standards]
+      ]
+    ],
+    [
+      'Caja 4: Defensa de Panel — Diferenciación Metodológica (20 pts)',
+      [
+        ['4.1 Diferenciación entre metodología de ingeniería y diseño metodológico de investigación', p.box4_methodology_diff]
+      ]
+    ]
+  ];
 
   /**
    * Builds a titled section block inside the certificate PDF view using safe DOM nodes.
@@ -350,6 +416,22 @@
 
     const total = Number(result.total_score) || 0;
     const scaleLabel = (result.scale_label || getScaleLabel(total)).toUpperCase();
+    const approved = total >= 51;
+
+    const statusBox = document.getElementById('cert-status-box');
+    const statusText = document.getElementById('cert-status-text');
+    const previewPill = document.getElementById('cert-preview-pill');
+
+    statusBox.className = approved
+      ? 'text-left sm:text-right border-2 border-usb-green bg-emerald-50 px-4 py-2.5 rounded-lg shrink-0'
+      : 'text-left sm:text-right border-2 border-usb-red bg-red-50 px-4 py-2.5 rounded-lg shrink-0';
+    statusText.className = approved
+      ? 'text-lg font-black text-usb-green'
+      : 'text-lg font-black text-usb-red';
+    previewPill.className = approved
+      ? 'text-xs font-semibold text-usb-green bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full'
+      : 'text-xs font-semibold text-usb-red bg-red-50 border border-red-200 px-3 py-1 rounded-full';
+    previewPill.textContent = approved ? 'Habilitado — Listo para PDF' : 'Informe preliminar — Listo para PDF';
 
     document.getElementById('cert-scale-label').textContent = scaleLabel;
     document.getElementById('cert-total-score').textContent = String(total);
@@ -372,94 +454,230 @@
 
     const answersBody = document.getElementById('cert-answers-body');
     answersBody.replaceChildren();
-
-    answersBody.appendChild(createExamSectionNode('Caja 1: Capítulo I — Problema y Trazabilidad de Objetivos (30 pts)', [
-      ['1.1 Síntoma con evidencia empírica (Problema)', p.box1_symptom],
-      ['1.2 Causa raíz', p.box1_cause],
-      ['1.3 Efecto / Pronóstico', p.box1_effect],
-      ['1.4 Pregunta General', p.box1_general_question],
-      ['1.5 Objetivo General', p.box1_general_objective]
-    ]));
-
-    answersBody.appendChild(createExamSectionNode('Cuadro 6 — Objetivo Específico 1 (OE1)', [
-      ['Objetivo Específico 1', p.oe1_text],
-      ['Evidencia requerida', p.oe1_evidence],
-      ['Fuente / Procedimiento', p.oe1_source],
-      ['Criterio de análisis', p.oe1_criteria]
-    ]));
-
-    answersBody.appendChild(createExamSectionNode('Cuadro 6 — Objetivo Específico 2 (OE2)', [
-      ['Objetivo Específico 2', p.oe2_text],
-      ['Evidencia requerida', p.oe2_evidence],
-      ['Fuente / Procedimiento', p.oe2_source],
-      ['Criterio de análisis', p.oe2_criteria]
-    ]));
-
-    answersBody.appendChild(createExamSectionNode('Cuadro 6 — Objetivo Específico 3 (OE3)', [
-      ['Objetivo Específico 3', p.oe3_text],
-      ['Evidencia requerida', p.oe3_evidence],
-      ['Fuente / Procedimiento', p.oe3_source],
-      ['Criterio de análisis', p.oe3_criteria]
-    ]));
-
-    answersBody.appendChild(createExamSectionNode('Caja 2: Apartado 1.6 — Idea Preliminar de Solución y Viabilidad (25 pts)', [
-      ['2.1 Límites del sistema (alcance y exclusiones)', p.box2_system_limits],
-      ['2.2 Actores', p.box2_actors],
-      ['2.3 Componentes', p.box2_components],
-      ['2.4 Métricas técnicas de ingeniería (Cuadro 3)', p.box2_engineering_metrics],
-      ['2.5 Supuestos, permisos éticos y acceso (Cuadro 8)', p.box2_ethics_access]
-    ]));
-
-    answersBody.appendChild(createExamSectionNode('Caja 3: Capítulo II — Fundamentación Teórica, Estado del Arte y Legal (25 pts)', [
-      ['3.1 Antecedente 1 y vacío explícito (2.1.2)', p.box3_antecedent1],
-      ['3.2 Antecedente 2 y vacío explícito (2.1.2)', p.box3_antecedent2],
-      ['3.3 Teoría / Modelo rector conectado a variables (2.2.1)', p.box3_guiding_theory],
-      ['3.4 Fundamento tecnológico (2.2.2)', p.box3_tech_foundation],
-      ['3.5 Normativa y estándar aplicable (2.3.2)', p.box3_legal_standards]
-    ]));
-
-    answersBody.appendChild(createExamSectionNode('Caja 4: Defensa de Panel — Diferenciación Metodológica (20 pts)', [
-      ['4.1 Diferenciación entre metodología de ingeniería y diseño metodológico de investigación', p.box4_methodology_diff]
-    ]));
+    for (const [sectionTitle, sectionItems] of getProfileSections(p)) {
+      answersBody.appendChild(createExamSectionNode(sectionTitle, sectionItems));
+    }
   };
 
   /**
-   * Exports certificate + full exam as a clean PDF using html2pdf.js (with print fallback).
+   * Normalizes text so jsPDF built-in Helvetica (WinAnsi) renders clean Spanish characters.
+   */
+  const pdfText = (input) =>
+    String(input || '')
+      .replace(/[\u2014\u2013]/g, '-')
+      .replace(/\u2265/g, '>=')
+      .replace(/\u2264/g, '<=')
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/\u2022/g, '*')
+      .replace(/[^\x09\x0A\x0D\x20-\xFF]/g, '');
+
+  /**
+   * Loads logousb_blue.png into a PNG Data URL preserving aspect ratio.
+   */
+  const loadLogoDataUrl = () =>
+    new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          resolve({
+            dataUrl: canvas.toDataURL('image/png'),
+            width: canvas.width,
+            height: canvas.height
+          });
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = 'logousb_blue.png';
+    });
+
+  /**
+   * Exports report + full profile up to Cap. II as a clean vector PDF using jsPDF.
    */
   const exportCertificatePdf = async () => {
-    if (!lastResult || Number(lastResult.total_score) < 51 || !lastPayload) return;
+    if (!lastResult || !lastPayload) return;
 
-    if (typeof window.html2pdf !== 'function') {
+    const JsPdfCtor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
+    if (typeof JsPdfCtor !== 'function') {
       window.print();
       return;
     }
 
     const safeStudentId = (lastPayload.student_id || 'USB').replace(/[^a-zA-Z0-9_-]+/g, '_');
     const hash = lastResult.verification_hash || 'VERIFICADO';
-    const filename = `Certificado_Parcial2_USB_${safeStudentId}_${hash}.pdf`;
+    const filename = `Perfil_Parcial2_USB_${safeStudentId}_${hash}.pdf`;
 
     downloadPdfBtn.disabled = true;
     const originalText = downloadPdfBtn.textContent;
     downloadPdfBtn.textContent = 'Generando PDF...';
 
-    certificateDocument.classList.add('pdf-export-mode');
-
     try {
-      await window.html2pdf()
-        .set({
-          margin: [10, 10, 12, 10],
-          filename,
-          image: { type: 'jpeg', quality: 0.96 },
-          html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-          jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        })
-        .from(certificateDocument)
-        .save();
+      const logo = await loadLogoDataUrl();
+      const doc = new JsPdfCtor({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 15;
+      const contentWidth = pageWidth - margin * 2;
+      const bottomLimit = pageHeight - 18;
+      let y = 14;
+
+      const ensureSpace = (neededMm) => {
+        if (y + neededMm > bottomLimit) {
+          doc.addPage();
+          y = 16;
+        }
+      };
+
+      const writeWrapped = (text, x, maxW, fontSize, style = 'normal', color = [15, 23, 42], lineHeight = 4.6) => {
+        doc.setFont('helvetica', style);
+        doc.setFontSize(fontSize);
+        doc.setTextColor(...color);
+        const lines = doc.splitTextToSize(pdfText(text), maxW);
+        for (const line of lines) {
+          ensureSpace(lineHeight + 1);
+          doc.text(line, x, y);
+          y += lineHeight;
+        }
+      };
+
+      // Encabezado con Logo USB
+      if (logo && logo.dataUrl && logo.width && logo.height) {
+        const logoHeightMm = 14;
+        const logoWidthMm = Math.min(55, logoHeightMm * (logo.width / logo.height));
+        doc.addImage(logo.dataUrl, 'PNG', margin, y, logoWidthMm, logoHeightMm);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(95, 37, 159);
+        doc.text(pdfText('UNIVERSIDAD SALESIANA DE BOLIVIA'), margin + logoWidthMm + 5, y + 5);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(pdfText('Ingenieria de Sistemas - Metodologia de la Investigacion II'), margin + logoWidthMm + 5, y + 10);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(71, 85, 105);
+        doc.text(pdfText('Informe de Auditoria Metodologica y Perfil de Grado (hasta Cap. II - Guia 2026)'), margin + logoWidthMm + 5, y + 14.5);
+        y += 18;
+      } else {
+        writeWrapped('UNIVERSIDAD SALESIANA DE BOLIVIA - INGENIERIA DE SISTEMAS', margin, contentWidth, 12, 'bold', [95, 37, 159], 5.5);
+        writeWrapped('Informe de Auditoria Metodologica y Perfil de Grado (hasta Cap. II - Guia 2026)', margin, contentWidth, 9.5, 'bold', [15, 23, 42], 5);
+        y += 2;
+      }
+
+      doc.setDrawColor(185, 28, 28);
+      doc.setLineWidth(0.9);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 5;
+
+      // Recuadro de Calificación y Hash
+      const total = Number(lastResult.total_score) || 0;
+      const scaleLabel = lastResult.scale_label || getScaleLabel(total);
+      const isApproved = total >= 51;
+      const evaluatedAt = lastResult.evaluated_at
+        ? new Date(lastResult.evaluated_at).toLocaleString('es-BO', { dateStyle: 'medium', timeStyle: 'short' })
+        : new Date().toLocaleString('es-BO', { dateStyle: 'medium', timeStyle: 'short' });
+
+      doc.setFillColor(isApproved ? 236 : 254, isApproved ? 253 : 242, isApproved ? 245 : 242);
+      doc.setDrawColor(isApproved ? 40 : 185, isApproved ? 167 : 28, isApproved ? 69 : 28);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(margin, y, contentWidth, 21, 2, 2, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(isApproved ? 22 : 185, isApproved ? 101 : 28, isApproved ? 52 : 28);
+      doc.text(pdfText(`CALIFICACION: ${total} / 100 pts  -  ${scaleLabel.toUpperCase()}`), margin + 4, y + 7);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(pdfText(`Codigo Hash SHA-256 (Teams): ${hash}`), margin + 4, y + 13);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(71, 85, 105);
+      const modelInfo = lastResult.model_used ? ` | Auditor: ${lastResult.model_used}` : '';
+      doc.text(pdfText(`Fecha de auditoria: ${evaluatedAt}${modelInfo}`), margin + 4, y + 18);
+      y += 26;
+
+      // Datos del Estudiante
+      writeWrapped('0. IDENTIFICACION DEL ESTUDIANTE Y DE LA INVESTIGACION', margin, contentWidth, 10, 'bold', [15, 23, 42], 5);
+      writeWrapped(`Estudiante: ${lastPayload.student_name}`, margin + 2, contentWidth - 4, 9, 'normal', [30, 41, 59], 4.5);
+      writeWrapped(`RU (Registro Universitario): ${lastPayload.student_id}`, margin + 2, contentWidth - 4, 9, 'normal', [30, 41, 59], 4.5);
+      writeWrapped(`Modalidad: ${lastPayload.modality}`, margin + 2, contentWidth - 4, 9, 'normal', [30, 41, 59], 4.5);
+      writeWrapped(`Titulo de la Investigacion (Tentativo o Preliminar): ${lastPayload.project_title}`, margin + 2, contentWidth - 4, 9, 'normal', [30, 41, 59], 4.5);
+      y += 3;
+
+      // Desglose de Puntajes y Dictamen
+      writeWrapped('DESGLOSE DE EVALUACION Y RETROALIMENTACION DEL AUDITOR', margin, contentWidth, 10, 'bold', [95, 37, 159], 5);
+      const blocks = [
+        ['Bloque 1 (Cap. I y Cuadro 6)', `${lastResult.block1_score} / 30 pts`, lastResult.block1_feedback, [185, 28, 28]],
+        ['Bloque 2 (Apartado 1.6, Cuadros 3, 7 y 8)', `${lastResult.block2_score} / 25 pts`, lastResult.block2_feedback, [180, 83, 9]],
+        ['Bloque 3 (Cap. II - Fundamentacion)', `${lastResult.block3_score} / 25 pts`, lastResult.block3_feedback, [95, 37, 159]],
+        ['Bloque 4 (Defensa de Panel)', `${lastResult.block4_score} / 20 pts`, lastResult.block4_feedback, [21, 128, 61]]
+      ];
+
+      for (const [bTitle, bScore, bFeed, bColor] of blocks) {
+        ensureSpace(14);
+        writeWrapped(`${bTitle}: ${bScore}`, margin + 2, contentWidth - 4, 9.2, 'bold', bColor, 4.6);
+        writeWrapped(bFeed || 'Sin observaciones.', margin + 4, contentWidth - 6, 8.7, 'normal', [51, 65, 85], 4.3);
+        y += 1.5;
+      }
+
+      const fixes = Array.isArray(lastResult.critical_fixes_needed) ? lastResult.critical_fixes_needed.filter(Boolean) : [];
+      if (fixes.length > 0) {
+        ensureSpace(12);
+        writeWrapped('Observaciones Criticas Prioritarias:', margin + 2, contentWidth - 4, 9.2, 'bold', [185, 28, 28], 4.6);
+        for (const fix of fixes) {
+          writeWrapped(`* ${fix}`, margin + 4, contentWidth - 6, 8.7, 'normal', [51, 65, 85], 4.3);
+        }
+        y += 2;
+      }
+
+      // Desarrollo completo del Perfil
+      ensureSpace(14);
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.4);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 5;
+      writeWrapped('REGISTRO COMPLETO DEL PERFIL RESPONDIDO (HASTA CAPITULO II)', margin, contentWidth, 10.5, 'bold', [95, 37, 159], 5.5);
+
+      for (const [sectionTitle, sectionItems] of getProfileSections(lastPayload)) {
+        ensureSpace(14);
+        y += 1.5;
+        writeWrapped(sectionTitle, margin, contentWidth, 9.5, 'bold', [15, 23, 42], 5);
+        for (const [label, value] of sectionItems) {
+          ensureSpace(10);
+          writeWrapped(`${label}:`, margin + 2, contentWidth - 4, 8.7, 'bold', [51, 65, 85], 4.2);
+          writeWrapped(value || '[No respondido / Sin avance registrado]', margin + 4, contentWidth - 6, 8.7, 'normal', [30, 41, 59], 4.2);
+        }
+      }
+
+      // Pie de página con numeración en todas las páginas
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text(
+          pdfText(`Auditor Metodologico USB 2026 - Hash: ${hash} - Pagina ${i} de ${totalPages}`),
+          margin,
+          pageHeight - 9
+        );
+      }
+
+      doc.save(filename);
     } catch {
       window.print();
     } finally {
-      certificateDocument.classList.remove('pdf-export-mode');
       downloadPdfBtn.disabled = false;
       downloadPdfBtn.textContent = originalText;
     }

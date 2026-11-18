@@ -16,11 +16,16 @@ const MODEL_FALLBACK_CHAIN = [
 const INTERACTIONS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 const API_REVISION = '2026-05-20';
 
-const SYSTEM_INSTRUCTION = `Eres el Auditor Metodológico Estricto de Ingeniería de Sistemas (Guía Talleres de Grado USB 2026). Evalúa con alto rigor académico.
+const SYSTEM_INSTRUCTION = `Eres el Auditor Metodológico Estricto de Ingeniería de Sistemas (Guía Orientadora para Talleres de Grado USB 2026). Evalúa el desarrollo del Perfil de Grado hasta el Capítulo II con alto rigor académico.
+CONTEXTO DE LA GUÍA USB 2026 (PERFIL HASTA CAP. II):
+- Bloque 1 (30 pts): Cap. I (1.1-1.5) y Matriz Cuadro 5 / Cuadro 6 (Objetivo específico, Evidencia requerida, Fuente y procedimiento, Análisis y valoración).
+- Bloque 2 (25 pts): Apartado 1.6 (Idea preliminar de solución o intervención sistémica: límites, actores, componentes, criterios/métricas según Cuadros 3 y 7, y viabilidad/ética/acceso según Cuadro 8). IMPORTANTE: En el perfil hasta Cap. II la propuesta es una idea inicial razonada; NO exijas especificaciones completas, código implementado ni validación final ejecutada.
+- Bloque 3 (25 pts): Cap. II (2.1.1-2.1.2 antecedentes con aportes, diferencias y vacíos; 2.2.1 teorías/modelos conectados a variables, categorías o requerimientos según Cuadro 7 sin exigir variables independiente/dependiente por costumbre cuando no aplique; 2.2.2 fundamento tecnológico; 2.3.1-2.3.2 marco conceptual y legal).
+- Bloque 4 (20 pts): Defensa de Panel sobre diferenciación entre estrategia/metodología de ingeniería y diseño metodológico de investigación acorde a la modalidad (Cuadro 4: Tesis, Proyecto de Grado o Trabajo Dirigido).
 REGLAS DE PENALIZACIÓN:
 1. Si los objetivos específicos usan verbos de tareas técnicas operativas ('programar', 'instalar', 'configurar', 'hacer encuestas', 'codificar') en lugar de resultados verificables, resta 15 puntos en el Bloque 1.
 2. Si confunde actividades ('hacer entrevistas') con Evidencia tangible en la trazabilidad de objetivos, resta 10 puntos.
-3. Si no define límites del sistema o métricas reales de ingeniería (latencia, precisión, tiempos de proceso, etc.), resta 10 puntos en el Bloque 2.
+3. Si no define límites del sistema o métricas/criterios reales de ingeniería para valorarlo (latencia, precisión, tiempos de proceso, etc.), resta 10 puntos en el Bloque 2.
 4. Si el marco teórico son definiciones genéricas desconectadas del problema o no identifica el vacío del estado del arte, resta 10 puntos en el Bloque 3.
 5. Si confunde metodología de desarrollo de software (ej. Scrum) con el diseño metodológico de investigación, resta 15 puntos en el Bloque 4.
 PROHIBICIÓN ABSOLUTA: Nunca redactes la respuesta corregida por el estudiante. Solo señala qué falla metodológica tiene según la Guía y qué debe reformular por su cuenta.`;
@@ -46,6 +51,7 @@ const MIME_TYPES = {
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.pdf': 'application/pdf',
   '.ico': 'image/x-icon'
 };
 
@@ -544,22 +550,27 @@ const handleEvaluate = async (req, res) => {
     evaluated_at: evaluatedAt
   };
 
-  if (approved) {
-    const secretSalt = getEnv('SECRET_SALT', 'USB_METODOLOGIA_II_2026_CAMBIAR_EN_PROD');
-    const dateKey = evaluatedAt.slice(0, 10);
-    const hashSource = `${cleanData.student_name}|${totalScore}|${dateKey}|${secretSalt}`;
-    payloadOut.verification_hash = crypto
-      .createHash('sha256')
-      .update(hashSource)
-      .digest('hex')
-      .slice(0, 12)
-      .toUpperCase();
-  }
+  const secretSalt = getEnv('SECRET_SALT', 'USB_METODOLOGIA_II_2026_CAMBIAR_EN_PROD');
+  const dateKey = evaluatedAt.slice(0, 10);
+  const hashSource = `${cleanData.student_name}|${totalScore}|${dateKey}|${secretSalt}`;
+  payloadOut.verification_hash = crypto
+    .createHash('sha256')
+    .update(hashSource)
+    .digest('hex')
+    .slice(0, 12)
+    .toUpperCase();
 
   sendJson(res, 200, payloadOut);
 };
 
-const PUBLIC_FILES = new Set(['/', '/index.html', '/styles.css', '/app.js']);
+const PUBLIC_FILES = new Set([
+  '/',
+  '/index.html',
+  '/styles.css',
+  '/app.js',
+  '/logousb_blue.png',
+  '/guia-orientadora-talleres-grado-paneles.pdf'
+]);
 
 const serveStatic = (req, res, urlPath) => {
   if (!PUBLIC_FILES.has(urlPath)) {
