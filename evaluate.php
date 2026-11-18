@@ -135,9 +135,7 @@ $requiredFields = [
 
 $optionalFields = [
     'box1_symptom', 'box1_cause', 'box1_effect', 'box1_general_question', 'box1_general_objective',
-    'oe1_text', 'oe1_evidence', 'oe1_source', 'oe1_criteria',
-    'oe2_text', 'oe2_evidence', 'oe2_source', 'oe2_criteria',
-    'oe3_text', 'oe3_evidence', 'oe3_source', 'oe3_criteria',
+    'oe1_text', 'oe2_text', 'oe3_text',
     'box2_system_limits', 'box2_actors', 'box2_components', 'box2_engineering_metrics', 'box2_ethics_access',
     'box3_antecedent1', 'box3_antecedent2', 'box3_guiding_theory', 'box3_tech_foundation', 'box3_legal_standards',
     'box4_methodology_diff'
@@ -170,13 +168,13 @@ if (count($missing) > 0) {
 $systemInstruction = <<<'PROMPT'
 Eres el Auditor Metodológico Estricto de Ingeniería de Sistemas (Guía Orientadora para Talleres de Grado USB 2026). Evalúa el desarrollo del Perfil de Grado hasta el Capítulo II con alto rigor académico.
 CONTEXTO DE LA GUÍA USB 2026 (PERFIL HASTA CAP. II):
-- Bloque 1 (30 pts): Cap. I (1.1-1.5) y Matriz Cuadro 5 / Cuadro 6 (Objetivo específico, Evidencia requerida, Fuente y procedimiento, Análisis y valoración).
-- Bloque 2 (25 pts): Apartado 1.6 (Idea preliminar de solución o intervención sistémica: límites, actores, componentes, criterios/métricas según Cuadros 3 y 7, y viabilidad/ética/acceso según Cuadro 8). IMPORTANTE: En el perfil hasta Cap. II la propuesta es una idea inicial razonada; NO exijas especificaciones completas, código implementado ni validación final ejecutada.
-- Bloque 3 (25 pts): Cap. II (2.1.1-2.1.2 antecedentes con aportes, diferencias y vacíos; 2.2.1 teorías/modelos conectados a variables, categorías o requerimientos según Cuadro 7 sin exigir variables independiente/dependiente por costumbre cuando no aplique; 2.2.2 fundamento tecnológico; 2.3.1-2.3.2 marco conceptual y legal).
+- Bloque 1 (50 pts): Cap. I (1.1-1.5) y Objetivos Específicos (1.6: 3 objetivos específicos como resultados verificables alineados con el problema, la pregunta y el objetivo general).
+- Bloque 2 (10 pts): Apartado 1.6 (Idea preliminar de solución o intervención sistémica: límites, actores, componentes, criterios/métricas según Cuadros 3 y 7, y viabilidad/ética/acceso según Cuadro 8). IMPORTANTE: En el perfil hasta Cap. II la propuesta es una idea inicial razonada; NO exijas especificaciones completas, código implementado ni validación final ejecutada.
+- Bloque 3 (20 pts): Cap. II (2.1.1-2.1.2 antecedentes con aportes, diferencias y vacíos; 2.2.1 teorías/modelos conectados a variables, categorías o requerimientos según Cuadro 7 sin exigir variables independiente/dependiente por costumbre cuando no aplique; 2.2.2 fundamento tecnológico; 2.3.1-2.3.2 marco conceptual y legal).
 - Bloque 4 (20 pts): Defensa de Panel sobre diferenciación entre estrategia/metodología de ingeniería y diseño metodológico de investigación acorde a la modalidad (Cuadro 4: Tesis, Proyecto de Grado o Trabajo Dirigido).
 REGLAS DE PENALIZACIÓN:
 1. Si los objetivos específicos usan verbos de tareas técnicas operativas ('programar', 'instalar', 'configurar', 'hacer encuestas', 'codificar') en lugar de resultados verificables, resta 15 puntos en el Bloque 1.
-2. Si confunde actividades ('hacer entrevistas') con Evidencia tangible en la trazabilidad de objetivos, resta 10 puntos.
+2. Si confunde actividades ('hacer entrevistas') con resultados o logros verificables en los objetivos, resta 10 puntos en el Bloque 1.
 3. Si no define límites del sistema o métricas/criterios reales de ingeniería para valorarlo (latencia, precisión, tiempos de proceso, etc.), resta 10 puntos en el Bloque 2.
 4. Si el marco teórico son definiciones genéricas desconectadas del problema o no identifica el vacío del estado del arte, resta 10 puntos en el Bloque 3.
 5. Si confunde metodología de desarrollo de software (ej. Scrum) con el diseño metodológico de investigación, resta 15 puntos en el Bloque 4.
@@ -186,9 +184,9 @@ PROMPT;
 $userPrompt = <<<TEXT
 Audita el siguiente examen del Segundo Parcial de Metodología de la Investigación II (Guía Talleres de Grado USB 2026).
 Asigna los puntajes estrictos dentro de estos rangos máximos exactos:
-- block1_score: entero entre 0 y 30 (Cap. I y Cuadro 6)
-- block2_score: entero entre 0 y 25 (Apartado 1.6, Cuadro 3 y Cuadro 8)
-- block3_score: entero entre 0 y 25 (Cap. II: 2.1.2, 2.2.1, 2.2.2, 2.3.2)
+- block1_score: entero entre 0 y 50 (Cap. I: Problema y Objetivos)
+- block2_score: entero entre 0 y 10 (Apartado 1.6, Cuadros 3, 7 y 8)
+- block3_score: entero entre 0 y 20 (Cap. II: 2.1.2, 2.2.1, 2.2.2, 2.3.2)
 - block4_score: entero entre 0 y 20 (Defensa de Panel: diferenciación metodológica)
 - total_score: suma exacta de los 4 bloques (0 a 100)
 - Escala de habilitación: 100 Distinguido con Honores | 90-99 Excelente | 80-89 Muy Bueno | 70-79 Bueno | 51-69 Aprobado | <=50 Reprobado
@@ -200,37 +198,28 @@ DATOS DEL ESTUDIANTE Y DE LA INVESTIGACIÓN:
 - Título de la Investigación (Tentativo o Preliminar): {$cleanData['project_title']}
 - Modalidad: {$cleanData['modality']}
 
-=== CAJA 1: CAP. I — PROBLEMA Y TRAZABILIDAD DE OBJETIVOS (Máximo 30 pts) ===
+=== CAJA 1: CAP. I — PROBLEMA Y OBJETIVOS (Máximo 50 pts) ===
 - Síntoma con evidencia empírica (Problema): {$cleanData['box1_symptom']}
 - Causa: {$cleanData['box1_cause']}
 - Efecto: {$cleanData['box1_effect']}
 - Pregunta General: {$cleanData['box1_general_question']}
 - Objetivo General: {$cleanData['box1_general_objective']}
-- Matriz Cuadro 6:
+- Objetivos Específicos:
   * OE1: {$cleanData['oe1_text']}
-    - Evidencia requerida: {$cleanData['oe1_evidence']}
-    - Fuente/Procedimiento: {$cleanData['oe1_source']}
-    - Criterio de análisis: {$cleanData['oe1_criteria']}
   * OE2: {$cleanData['oe2_text']}
-    - Evidencia requerida: {$cleanData['oe2_evidence']}
-    - Fuente/Procedimiento: {$cleanData['oe2_source']}
-    - Criterio de análisis: {$cleanData['oe2_criteria']}
   * OE3: {$cleanData['oe3_text']}
-    - Evidencia requerida: {$cleanData['oe3_evidence']}
-    - Fuente/Procedimiento: {$cleanData['oe3_source']}
-    - Criterio de análisis: {$cleanData['oe3_criteria']}
 
-=== CAJA 2: APARTADO 1.6 — IDEA PRELIMINAR DE SOLUCIÓN Y VIABILIDAD (Máximo 25 pts) ===
+=== CAJA 2: APARTADO 1.6 — IDEA PRELIMINAR DE SOLUCIÓN Y VIABILIDAD (Máximo 10 pts) ===
 - Límites del sistema (alcance y exclusiones): {$cleanData['box2_system_limits']}
 - Actores: {$cleanData['box2_actors']}
 - Componentes: {$cleanData['box2_components']}
 - Métricas técnicas de ingeniería (Cuadro 3): {$cleanData['box2_engineering_metrics']}
 - Supuestos, permisos éticos y acceso (Cuadro 8): {$cleanData['box2_ethics_access']}
 
-=== CAJA 3: CAP. II — FUNDAMENTACIÓN TEÓRICA, ESTADO DEL ARTE Y LEGAL (Máximo 25 pts) ===
+=== CAJA 3: CAP. II — FUNDAMENTACIÓN TEÓRICA, ESTADO DEL ARTE Y LEGAL (Máximo 20 pts) ===
 - Antecedente 1 y vacío explícito (2.1.2): {$cleanData['box3_antecedent1']}
 - Antecedente 2 y vacío explícito (2.1.2): {$cleanData['box3_antecedent2']}
-- Teoría o modelo rector conectado a variables/requerimientos (2.2.1): {$cleanData['box3_guiding_theory']}
+- Teoría o modelo rector conectado a variables, categorías o requerimientos (2.2.1): {$cleanData['box3_guiding_theory']}
 - Fundamento tecnológico (2.2.2): {$cleanData['box3_tech_foundation']}
 - Normativa o estándar aplicable (2.3.2): {$cleanData['box3_legal_standards']}
 
@@ -529,9 +518,9 @@ $clamp = static function ($val, int $min, int $max): int {
     return max($min, min($max, $n));
 };
 
-$b1 = $clamp($geminiResult['block1_score'] ?? 0, 0, 30);
-$b2 = $clamp($geminiResult['block2_score'] ?? 0, 0, 25);
-$b3 = $clamp($geminiResult['block3_score'] ?? 0, 0, 25);
+$b1 = $clamp($geminiResult['block1_score'] ?? 0, 0, 50);
+$b2 = $clamp($geminiResult['block2_score'] ?? 0, 0, 10);
+$b3 = $clamp($geminiResult['block3_score'] ?? 0, 0, 20);
 $b4 = $clamp($geminiResult['block4_score'] ?? 0, 0, 20);
 $totalScore = $b1 + $b2 + $b3 + $b4;
 $approved = $totalScore >= 51;

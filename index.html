@@ -62,14 +62,14 @@
       <div class="max-w-5xl mx-auto px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
         <nav aria-label="Progreso del examen" class="flex flex-wrap items-center gap-2 sm:gap-3">
           <a href="#sec-identificacion" class="px-2 py-1 rounded hover:bg-slate-200 text-slate-700 font-medium">0. Datos</a>
-          <a href="#sec-caja1" class="px-2 py-1 rounded hover:bg-red-50 text-usb-red font-semibold">Caja 1 (30 pts)</a>
-          <a href="#sec-caja2" class="px-2 py-1 rounded hover:bg-amber-50 text-amber-700 font-semibold">Caja 2 (25 pts)</a>
-          <a href="#sec-caja3" class="px-2 py-1 rounded hover:bg-purple-50 text-usb-purple font-semibold">Caja 3 (25 pts)</a>
+          <a href="#sec-caja1" class="px-2 py-1 rounded hover:bg-red-50 text-usb-red font-semibold">Caja 1 (50 pts)</a>
+          <a href="#sec-caja2" class="px-2 py-1 rounded hover:bg-amber-50 text-amber-700 font-semibold">Caja 2 (10 pts)</a>
+          <a href="#sec-caja3" class="px-2 py-1 rounded hover:bg-purple-50 text-usb-purple font-semibold">Caja 3 (20 pts)</a>
           <a href="#sec-caja4" class="px-2 py-1 rounded hover:bg-emerald-50 text-usb-green font-semibold">Caja 4 (20 pts)</a>
         </nav>
         <div class="flex items-center gap-3">
           <span class="text-slate-600 font-semibold">
-            Campos completados: <span id="completion-count" class="text-usb-purple">0</span>/<span id="completion-total">32</span>
+            Campos completados: <span id="completion-count" class="text-usb-purple">0</span>/<span id="completion-total">23</span>
           </span>
           <button type="button" id="clear-draft-btn" class="text-xs font-semibold text-usb-red hover:underline px-2 py-1 rounded">
             Limpiar borrador
@@ -94,9 +94,9 @@
           </p>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0 text-center text-xs font-semibold">
-          <div class="px-3 py-2 rounded-lg bg-red-50 text-usb-red border border-red-200">Caja 1<br><span class="text-sm font-bold">30 pts</span></div>
-          <div class="px-3 py-2 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">Caja 2<br><span class="text-sm font-bold">25 pts</span></div>
-          <div class="px-3 py-2 rounded-lg bg-purple-50 text-usb-purple border border-purple-200">Caja 3<br><span class="text-sm font-bold">25 pts</span></div>
+          <div class="px-3 py-2 rounded-lg bg-red-50 text-usb-red border border-red-200">Caja 1<br><span class="text-sm font-bold">50 pts</span></div>
+          <div class="px-3 py-2 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">Caja 2<br><span class="text-sm font-bold">10 pts</span></div>
+          <div class="px-3 py-2 rounded-lg bg-purple-50 text-usb-purple border border-purple-200">Caja 3<br><span class="text-sm font-bold">20 pts</span></div>
           <div class="px-3 py-2 rounded-lg bg-emerald-50 text-usb-green border border-emerald-200">Caja 4<br><span class="text-sm font-bold">20 pts</span></div>
         </div>
       </div>
@@ -194,16 +194,16 @@
         </div>
       </fieldset>
 
-      <!-- CAJA 1: Cap. I - Problema y Trazabilidad de Objetivos (30 pts) -->
+      <!-- CAJA 1: Cap. I - Problema y Objetivos (50 pts) -->
       <fieldset id="sec-caja1" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <legend class="w-full px-5 sm:px-6 py-4 bg-usb-red text-white font-bold text-base sm:text-lg flex items-center justify-between">
-          <span>Caja 1: Cap. I — Problema y Trazabilidad de Objetivos (Opcional según avance)</span>
-          <span class="text-xs font-bold bg-white text-usb-red px-2.5 py-1 rounded-full">30 pts</span>
+          <span>Caja 1: Cap. I — Problema y Objetivos (Opcional según avance)</span>
+          <span class="text-xs font-bold bg-white text-usb-red px-2.5 py-1 rounded-full">50 pts</span>
         </legend>
 
         <div class="p-5 sm:p-6 space-y-2">
           <div class="rounded-lg bg-red-50 border border-red-200 p-3.5 text-xs sm:text-sm text-red-950 mb-4">
-            <strong>Criterio de Auditoría:</strong> Evita verbos de tareas operativas (<em>programar, instalar, configurar, hacer encuestas, codificar</em>) en los objetivos específicos y no confundas actividades (<em>hacer entrevistas</em>) con <strong>evidencia tangible</strong> en el Cuadro 6.
+            <strong>Criterio de Auditoría:</strong> Evita verbos de tareas técnicas operativas (<em>programar, instalar, configurar, hacer encuestas, codificar</em>) en los objetivos específicos; formula resultados parciales y verificables alineados con el Objetivo General y el Problema.
           </div>
 
           <div class="form-field">
@@ -238,102 +238,39 @@
             <textarea id="box1_general_objective" name="box1_general_objective" rows="2" class="form-control" aria-describedby="box1_general_objective_hint" placeholder="Diseñar / Desarrollar / Proponer..."></textarea>
           </div>
 
-          <!-- Matriz Cuadro 6: 3 Objetivos Específicos -->
-          <div class="pt-4 border-t border-slate-200 space-y-5">
+          <!-- 1.6 Objetivos Específicos -->
+          <div class="pt-4 border-t border-slate-200 space-y-4">
             <div>
-              <h3 class="text-base font-bold text-slate-900">1.6 Matriz de Trazabilidad de Objetivos Específicos (Cuadro 6 de la Guía)</h3>
-              <p class="text-xs sm:text-sm text-slate-600">Detalla los 3 Objetivos Específicos como resultados verificables, junto a su evidencia tangible, fuente/procedimiento y criterio de análisis.</p>
+              <h3 class="text-base font-bold text-slate-900">1.6 Objetivos Específicos</h3>
+              <p class="text-xs sm:text-sm text-slate-600">Redacta los 3 Objetivos Específicos como resultados parciales verificables que conduzcan al logro del Objetivo General.</p>
             </div>
 
-            <!-- Objetivo Específico 1 -->
-            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-2">
-              <div class="font-bold text-sm text-usb-red">Objetivo Específico 1 (OE1)</div>
-              <div class="form-field">
-                <label for="oe1_text" class="form-label">Enunciado del OE1 (Resultado verificable)</label>
-                <span id="oe1_text_hint" class="form-hint">Verbo de resultado evaluable (ej. Caracterizar, Modelar, Validar, Evaluar).</span>
-                <textarea id="oe1_text" name="oe1_text" rows="2" class="form-control" aria-describedby="oe1_text_hint"></textarea>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="form-field">
-                  <label for="oe1_evidence" class="form-label">Evidencia requerida</label>
-                  <span id="oe1_evidence_hint" class="form-hint">Entregable o artefacto tangible (no actividad).</span>
-                  <textarea id="oe1_evidence" name="oe1_evidence" rows="2" class="form-control" aria-describedby="oe1_evidence_hint"></textarea>
-                </div>
-                <div class="form-field">
-                  <label for="oe1_source" class="form-label">Fuente / Procedimiento</label>
-                  <span id="oe1_source_hint" class="form-hint">Origen de datos e instrumento/técnica.</span>
-                  <textarea id="oe1_source" name="oe1_source" rows="2" class="form-control" aria-describedby="oe1_source_hint"></textarea>
-                </div>
-                <div class="form-field">
-                  <label for="oe1_criteria" class="form-label">Criterio de análisis</label>
-                  <span id="oe1_criteria_hint" class="form-hint">Parámetro, regla o umbral de aceptación.</span>
-                  <textarea id="oe1_criteria" name="oe1_criteria" rows="2" class="form-control" aria-describedby="oe1_criteria_hint"></textarea>
-                </div>
-              </div>
+            <div class="form-field">
+              <label for="oe1_text" class="form-label">Objetivo Específico 1 (OE1)</label>
+              <span id="oe1_text_hint" class="form-hint">Verbo de resultado evaluable (ej. Caracterizar, Diagnosticar, Modelar, Determinar).</span>
+              <textarea id="oe1_text" name="oe1_text" rows="2" class="form-control" aria-describedby="oe1_text_hint"></textarea>
             </div>
 
-            <!-- Objetivo Específico 2 -->
-            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-2">
-              <div class="font-bold text-sm text-usb-red">Objetivo Específico 2 (OE2)</div>
-              <div class="form-field">
-                <label for="oe2_text" class="form-label">Enunciado del OE2 (Resultado verificable)</label>
-                <span id="oe2_text_hint" class="form-hint">Verbo de resultado evaluable (evitar tareas operativas como programar/instalar/codificar).</span>
-                <textarea id="oe2_text" name="oe2_text" rows="2" class="form-control" aria-describedby="oe2_text_hint"></textarea>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="form-field">
-                  <label for="oe2_evidence" class="form-label">Evidencia requerida</label>
-                  <span id="oe2_evidence_hint" class="form-hint">Entregable o artefacto tangible.</span>
-                  <textarea id="oe2_evidence" name="oe2_evidence" rows="2" class="form-control" aria-describedby="oe2_evidence_hint"></textarea>
-                </div>
-                <div class="form-field">
-                  <label for="oe2_source" class="form-label">Fuente / Procedimiento</label>
-                  <span id="oe2_source_hint" class="form-hint">Origen de datos e instrumento/técnica.</span>
-                  <textarea id="oe2_source" name="oe2_source" rows="2" class="form-control" aria-describedby="oe2_source_hint"></textarea>
-                </div>
-                <div class="form-field">
-                  <label for="oe2_criteria" class="form-label">Criterio de análisis</label>
-                  <span id="oe2_criteria_hint" class="form-hint">Parámetro, regla o umbral de aceptación.</span>
-                  <textarea id="oe2_criteria" name="oe2_criteria" rows="2" class="form-control" aria-describedby="oe2_criteria_hint"></textarea>
-                </div>
-              </div>
+            <div class="form-field">
+              <label for="oe2_text" class="form-label">Objetivo Específico 2 (OE2)</label>
+              <span id="oe2_text_hint" class="form-hint">Verbo de resultado evaluable (evita tareas operativas como programar, instalar o codificar).</span>
+              <textarea id="oe2_text" name="oe2_text" rows="2" class="form-control" aria-describedby="oe2_text_hint"></textarea>
             </div>
 
-            <!-- Objetivo Específico 3 -->
-            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-2">
-              <div class="font-bold text-sm text-usb-red">Objetivo Específico 3 (OE3)</div>
-              <div class="form-field">
-                <label for="oe3_text" class="form-label">Enunciado del OE3 (Resultado verificable)</label>
-                <span id="oe3_text_hint" class="form-hint">Resultado orientado a evaluación/validación técnica o experimental del sistema/modelo.</span>
-                <textarea id="oe3_text" name="oe3_text" rows="2" class="form-control" aria-describedby="oe3_text_hint"></textarea>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="form-field">
-                  <label for="oe3_evidence" class="form-label">Evidencia requerida</label>
-                  <span id="oe3_evidence_hint" class="form-hint">Entregable o registro empírico tangible.</span>
-                  <textarea id="oe3_evidence" name="oe3_evidence" rows="2" class="form-control" aria-describedby="oe3_evidence_hint"></textarea>
-                </div>
-                <div class="form-field">
-                  <label for="oe3_source" class="form-label">Fuente / Procedimiento</label>
-                  <span id="oe3_source_hint" class="form-hint">Protocolo de prueba, dataset o instrumento.</span>
-                  <textarea id="oe3_source" name="oe3_source" rows="2" class="form-control" aria-describedby="oe3_source_hint"></textarea>
-                </div>
-                <div class="form-field">
-                  <label for="oe3_criteria" class="form-label">Criterio de análisis</label>
-                  <span id="oe3_criteria_hint" class="form-hint">Métrica o estadístico contra línea base.</span>
-                  <textarea id="oe3_criteria" name="oe3_criteria" rows="2" class="form-control" aria-describedby="oe3_criteria_hint"></textarea>
-                </div>
-              </div>
+            <div class="form-field">
+              <label for="oe3_text" class="form-label">Objetivo Específico 3 (OE3)</label>
+              <span id="oe3_text_hint" class="form-hint">Resultado orientado a evaluación/validación técnica o experimental del sistema o modelo.</span>
+              <textarea id="oe3_text" name="oe3_text" rows="2" class="form-control" aria-describedby="oe3_text_hint"></textarea>
             </div>
           </div>
         </div>
       </fieldset>
 
-      <!-- CAJA 2: Apartado 1.6 - Idea Preliminar de Solución y Viabilidad (25 pts) -->
+      <!-- CAJA 2: Apartado 1.6 - Idea Preliminar de Solución y Viabilidad (10 pts) -->
       <fieldset id="sec-caja2" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <legend class="w-full px-5 sm:px-6 py-4 bg-usb-orange text-slate-950 font-bold text-base sm:text-lg flex items-center justify-between">
           <span>Caja 2: Apartado 1.6 — Idea Preliminar de Solución y Viabilidad (Opcional según avance)</span>
-          <span class="text-xs font-bold bg-slate-950 text-white px-2.5 py-1 rounded-full">25 pts</span>
+          <span class="text-xs font-bold bg-slate-950 text-white px-2.5 py-1 rounded-full">10 pts</span>
         </legend>
 
         <div class="p-5 sm:p-6 space-y-2">
@@ -375,11 +312,11 @@
         </div>
       </fieldset>
 
-      <!-- CAJA 3: Cap. II - Fundamentación Teórica, Estado del Arte y Legal (25 pts) -->
+      <!-- CAJA 3: Cap. II - Fundamentación Teórica, Estado del Arte y Legal (20 pts) -->
       <fieldset id="sec-caja3" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <legend class="w-full px-5 sm:px-6 py-4 bg-usb-purple text-white font-bold text-base sm:text-lg flex items-center justify-between">
           <span>Caja 3: Cap. II — Fundamentación Teórica, Estado del Arte y Legal (Opcional según avance)</span>
-          <span class="text-xs font-bold bg-white text-usb-purple px-2.5 py-1 rounded-full">25 pts</span>
+          <span class="text-xs font-bold bg-white text-usb-purple px-2.5 py-1 rounded-full">20 pts</span>
         </legend>
 
         <div class="p-5 sm:p-6 space-y-2">
@@ -504,7 +441,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
           <div class="text-xs font-bold text-usb-red uppercase">Bloque 1 — Cap. I</div>
-          <div id="score-b1" class="text-2xl font-black text-slate-900 mt-1">0 / 30</div>
+          <div id="score-b1" class="text-2xl font-black text-slate-900 mt-1">0 / 50</div>
           <div class="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
             <div id="bar-b1" class="h-full bg-usb-red transition-all duration-300" style="width: 0%"></div>
           </div>
@@ -512,7 +449,7 @@
 
         <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
           <div class="text-xs font-bold text-amber-700 uppercase">Bloque 2 — Ap. 1.6</div>
-          <div id="score-b2" class="text-2xl font-black text-slate-900 mt-1">0 / 25</div>
+          <div id="score-b2" class="text-2xl font-black text-slate-900 mt-1">0 / 10</div>
           <div class="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
             <div id="bar-b2" class="h-full bg-usb-orange transition-all duration-300" style="width: 0%"></div>
           </div>
@@ -520,7 +457,7 @@
 
         <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
           <div class="text-xs font-bold text-usb-purple uppercase">Bloque 3 — Cap. II</div>
-          <div id="score-b3" class="text-2xl font-black text-slate-900 mt-1">0 / 25</div>
+          <div id="score-b3" class="text-2xl font-black text-slate-900 mt-1">0 / 20</div>
           <div class="w-full h-2 bg-slate-100 rounded-full mt-2 overflow-hidden">
             <div id="bar-b3" class="h-full bg-usb-purple transition-all duration-300" style="width: 0%"></div>
           </div>
@@ -544,7 +481,7 @@
       <!-- Retroalimentación Detallada -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <article class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <h3 class="text-sm font-bold text-usb-red uppercase mb-2">Retroalimentación Bloque 1 (Cap. I y Cuadro 6)</h3>
+          <h3 class="text-sm font-bold text-usb-red uppercase mb-2">Retroalimentación Bloque 1 (Cap. I — Problema y Objetivos)</h3>
           <p id="feedback-b1" class="text-sm text-slate-700 whitespace-pre-line"></p>
         </article>
         <article class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
@@ -614,7 +551,7 @@
             </thead>
             <tbody>
               <tr>
-                <td class="border border-slate-300 px-3 py-2 font-semibold">Bloque 1: Cap. I y Trazabilidad (Cuadro 6)</td>
+                <td class="border border-slate-300 px-3 py-2 font-semibold">Bloque 1: Cap. I — Problema y Objetivos</td>
                 <td id="cert-b1-score" class="border border-slate-300 px-3 py-2 text-center font-bold"></td>
                 <td id="cert-b1-feedback" class="border border-slate-300 px-3 py-2"></td>
               </tr>

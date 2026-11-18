@@ -44,9 +44,7 @@
   const TEXT_FIELD_NAMES = [
     'student_name', 'student_id', 'project_title',
     'box1_symptom', 'box1_cause', 'box1_effect', 'box1_general_question', 'box1_general_objective',
-    'oe1_text', 'oe1_evidence', 'oe1_source', 'oe1_criteria',
-    'oe2_text', 'oe2_evidence', 'oe2_source', 'oe2_criteria',
-    'oe3_text', 'oe3_evidence', 'oe3_source', 'oe3_criteria',
+    'oe1_text', 'oe2_text', 'oe3_text',
     'box2_system_limits', 'box2_actors', 'box2_components', 'box2_engineering_metrics', 'box2_ethics_access',
     'box3_antecedent1', 'box3_antecedent2', 'box3_guiding_theory', 'box3_tech_foundation', 'box3_legal_standards',
     'box4_methodology_diff'
@@ -243,14 +241,14 @@
     const approved = total >= 51;
 
     // Score cards
-    document.getElementById('score-b1').textContent = `${b1} / 30`;
-    document.getElementById('bar-b1').style.width = `${Math.min(100, Math.round((b1 / 30) * 100))}%`;
+    document.getElementById('score-b1').textContent = `${b1} / 50`;
+    document.getElementById('bar-b1').style.width = `${Math.min(100, Math.round((b1 / 50) * 100))}%`;
 
-    document.getElementById('score-b2').textContent = `${b2} / 25`;
-    document.getElementById('bar-b2').style.width = `${Math.min(100, Math.round((b2 / 25) * 100))}%`;
+    document.getElementById('score-b2').textContent = `${b2} / 10`;
+    document.getElementById('bar-b2').style.width = `${Math.min(100, Math.round((b2 / 10) * 100))}%`;
 
-    document.getElementById('score-b3').textContent = `${b3} / 25`;
-    document.getElementById('bar-b3').style.width = `${Math.min(100, Math.round((b3 / 25) * 100))}%`;
+    document.getElementById('score-b3').textContent = `${b3} / 20`;
+    document.getElementById('bar-b3').style.width = `${Math.min(100, Math.round((b3 / 20) * 100))}%`;
 
     document.getElementById('score-b4').textContent = `${b4} / 20`;
     document.getElementById('bar-b4').style.width = `${Math.min(100, Math.round((b4 / 20) * 100))}%`;
@@ -313,44 +311,20 @@
    */
   const getProfileSections = (p) => [
     [
-      'Caja 1: Capítulo I — Problema y Trazabilidad de Objetivos (30 pts)',
+      'Caja 1: Capítulo I — Problema y Objetivos (50 pts)',
       [
         ['1.1 Síntoma con evidencia empírica (Problema)', p.box1_symptom],
         ['1.2 Causa raíz', p.box1_cause],
         ['1.3 Efecto / Pronóstico', p.box1_effect],
         ['1.4 Pregunta General', p.box1_general_question],
-        ['1.5 Objetivo General', p.box1_general_objective]
+        ['1.5 Objetivo General', p.box1_general_objective],
+        ['1.6 Objetivo Específico 1 (OE1)', p.oe1_text],
+        ['1.6 Objetivo Específico 2 (OE2)', p.oe2_text],
+        ['1.6 Objetivo Específico 3 (OE3)', p.oe3_text]
       ]
     ],
     [
-      'Cuadro 6 — Objetivo Específico 1 (OE1)',
-      [
-        ['Objetivo Específico 1', p.oe1_text],
-        ['Evidencia requerida', p.oe1_evidence],
-        ['Fuente / Procedimiento', p.oe1_source],
-        ['Criterio de análisis', p.oe1_criteria]
-      ]
-    ],
-    [
-      'Cuadro 6 — Objetivo Específico 2 (OE2)',
-      [
-        ['Objetivo Específico 2', p.oe2_text],
-        ['Evidencia requerida', p.oe2_evidence],
-        ['Fuente / Procedimiento', p.oe2_source],
-        ['Criterio de análisis', p.oe2_criteria]
-      ]
-    ],
-    [
-      'Cuadro 6 — Objetivo Específico 3 (OE3)',
-      [
-        ['Objetivo Específico 3', p.oe3_text],
-        ['Evidencia requerida', p.oe3_evidence],
-        ['Fuente / Procedimiento', p.oe3_source],
-        ['Criterio de análisis', p.oe3_criteria]
-      ]
-    ],
-    [
-      'Caja 2: Apartado 1.6 — Idea Preliminar de Solución y Viabilidad (25 pts)',
+      'Caja 2: Apartado 1.6 — Idea Preliminar de Solución y Viabilidad (10 pts)',
       [
         ['2.1 Límites del sistema (alcance y exclusiones)', p.box2_system_limits],
         ['2.2 Actores', p.box2_actors],
@@ -360,7 +334,7 @@
       ]
     ],
     [
-      'Caja 3: Capítulo II — Fundamentación Teórica, Estado del Arte y Legal (25 pts)',
+      'Caja 3: Capítulo II — Fundamentación Teórica, Estado del Arte y Legal (20 pts)',
       [
         ['3.1 Antecedente 1 y vacío explícito (2.1.2)', p.box3_antecedent1],
         ['3.2 Antecedente 2 y vacío explícito (2.1.2)', p.box3_antecedent2],
@@ -443,11 +417,11 @@
     document.getElementById('cert-modality').textContent = p.modality;
     document.getElementById('cert-date').textContent = evaluatedAt;
 
-    document.getElementById('cert-b1-score').textContent = `${result.block1_score} / 30`;
+    document.getElementById('cert-b1-score').textContent = `${result.block1_score} / 50`;
     document.getElementById('cert-b1-feedback').textContent = result.block1_feedback;
-    document.getElementById('cert-b2-score').textContent = `${result.block2_score} / 25`;
+    document.getElementById('cert-b2-score').textContent = `${result.block2_score} / 10`;
     document.getElementById('cert-b2-feedback').textContent = result.block2_feedback;
-    document.getElementById('cert-b3-score').textContent = `${result.block3_score} / 25`;
+    document.getElementById('cert-b3-score').textContent = `${result.block3_score} / 20`;
     document.getElementById('cert-b3-feedback').textContent = result.block3_feedback;
     document.getElementById('cert-b4-score').textContent = `${result.block4_score} / 20`;
     document.getElementById('cert-b4-feedback').textContent = result.block4_feedback;
@@ -618,9 +592,9 @@
       // Desglose de Puntajes y Dictamen
       writeWrapped('DESGLOSE DE EVALUACION Y RETROALIMENTACION DEL AUDITOR', margin, contentWidth, 10, 'bold', [95, 37, 159], 5);
       const blocks = [
-        ['Bloque 1 (Cap. I y Cuadro 6)', `${lastResult.block1_score} / 30 pts`, lastResult.block1_feedback, [185, 28, 28]],
-        ['Bloque 2 (Apartado 1.6, Cuadros 3, 7 y 8)', `${lastResult.block2_score} / 25 pts`, lastResult.block2_feedback, [180, 83, 9]],
-        ['Bloque 3 (Cap. II - Fundamentacion)', `${lastResult.block3_score} / 25 pts`, lastResult.block3_feedback, [95, 37, 159]],
+        ['Bloque 1 (Cap. I - Problema y Objetivos)', `${lastResult.block1_score} / 50 pts`, lastResult.block1_feedback, [185, 28, 28]],
+        ['Bloque 2 (Apartado 1.6, Cuadros 3, 7 y 8)', `${lastResult.block2_score} / 10 pts`, lastResult.block2_feedback, [180, 83, 9]],
+        ['Bloque 3 (Cap. II - Fundamentacion)', `${lastResult.block3_score} / 20 pts`, lastResult.block3_feedback, [95, 37, 159]],
         ['Bloque 4 (Defensa de Panel)', `${lastResult.block4_score} / 20 pts`, lastResult.block4_feedback, [21, 128, 61]]
       ];
 
