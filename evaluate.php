@@ -233,7 +233,55 @@ DATOS DEL ESTUDIANTE Y DE LA INVESTIGACIÓN:
 - Respuesta técnica: {$cleanData['box4_methodology_diff']}
 TEXT;
 
-$geminiPayload = [
+$modelName = getConfigValue('GEMINI_MODEL', $dotEnv, 'gemini-3.8-flash');
+$interactionsEndpoint = 'https://generativelanguage.googleapis.com/v1beta/interactions';
+$generateContentEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($modelName) . ':generateContent';
+$apiRevision = '2026-05-20';
+
+$requiredSchemaFields = [
+    'total_score',
+    'block1_score', 'block1_feedback',
+    'block2_score', 'block2_feedback',
+    'block3_score', 'block3_feedback',
+    'block4_score', 'block4_feedback',
+    'critical_fixes_needed',
+    'approved'
+];
+
+$interactionsPayload = [
+    'model' => $modelName,
+    'system_instruction' => $systemInstruction,
+    'input' => $userPrompt,
+    'generation_config' => [
+        'thinking_level' => 'low'
+    ],
+    'response_format' => [
+        'type' => 'text',
+        'mime_type' => 'application/json',
+        'schema' => [
+            'type' => 'object',
+            'properties' => [
+                'total_score' => ['type' => 'integer'],
+                'block1_score' => ['type' => 'integer'],
+                'block1_feedback' => ['type' => 'string'],
+                'block2_score' => ['type' => 'integer'],
+                'block2_feedback' => ['type' => 'string'],
+                'block3_score' => ['type' => 'integer'],
+                'block3_feedback' => ['type' => 'string'],
+                'block4_score' => ['type' => 'integer'],
+                'block4_feedback' => ['type' => 'string'],
+                'critical_fixes_needed' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'string']
+                ],
+                'approved' => ['type' => 'boolean']
+            ],
+            'required' => $requiredSchemaFields
+        ]
+    ]
+];
+
+$generateContentPayload = [
     'systemInstruction' => [
         'parts' => [
             ['text' => $systemInstruction]
@@ -248,7 +296,6 @@ $geminiPayload = [
         ]
     ],
     'generationConfig' => [
-        'temperature' => 0.15,
         'responseMimeType' => 'application/json',
         'responseSchema' => [
             'type' => 'OBJECT',
@@ -268,21 +315,13 @@ $geminiPayload = [
                 ],
                 'approved' => ['type' => 'BOOLEAN']
             ],
-            'required' => [
-                'total_score',
-                'block1_score', 'block1_feedback',
-                'block2_score', 'block2_feedback',
-                'block3_score', 'block3_feedback',
-                'block4_score', 'block4_feedback',
-                'critical_fixes_needed',
-                'approved'
-            ]
+            'required' => $requiredSchemaFields
         ]
     ]
 ];
 
-$endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-$encodedBody = json_encode($geminiPayload, JSON_UNESCAPED_UNICODE);
+$encodedInteractions = json_encode($interactionsPayload, JSON_UNESCAPED_UNICODE);
+$encodedGenerateContent = json_encode($generateContentPayload, JSON_UNESCAPED_UNICODE);
 
 $maxAttempts = 3;
 $baseWaitSeconds = 3;
@@ -291,24 +330,46 @@ $lastErrorDetail = '';
 $geminiResult = null;
 
 $parseGeminiJson = static function (array $decoded): array {
-    $candidate = $decoded['candidates'][0] ?? [];
-    $parts = is_array($candidate['content']['parts'] ?? null) ? $candidate['content']['parts'] : [];
-    $textChunks = [];
-    foreach ($parts as $part) {
-        if (!is_array($part)) {
-            continue;
+    $rawText = '';
+
+    // 1. Interactions API format (output_text o steps[].content[].text)
+    if (isset($decoded['output_text']) && is_string($decoded['output_text']) && trim($decoded['output_text']) !== '') {
+        $rawText = trim($decoded['output_text']);
+    } elseif (isset($decoded['steps']) && is_array($decoded['steps'])) {
+        $stepChunks = [];
+        foreach ($decoded['steps'] as $step) {
+            if (!is_array($step) || ($step['type'] ?? '') !== 'model_output' || !is_array($step['content'] ?? null)) {
+                continue;
+            }
+            foreach ($step['content'] as $block) {
+                if (!is_array($block)) {
+                    continue;
+                }
+                if (isset($block['text']) && is_string($block['text']) && (!isset($block['type']) || $block['type'] === 'text')) {
+                    $stepChunks[] = $block['text'];
+                }
+            }
         }
-        if (!empty($part['thought'])) {
-            continue;
+        $rawText = trim(implode("\n", $stepChunks));
+    } else {
+        // 2. Classic generateContent format
+        $candidate = $decoded['candidates'][0] ?? [];
+        $parts = is_array($candidate['content']['parts'] ?? null) ? $candidate['content']['parts'] : [];
+        $textChunks = [];
+        foreach ($parts as $part) {
+            if (!is_array($part) || !empty($part['thought'])) {
+                continue;
+            }
+            if (isset($part['text']) && is_string($part['text'])) {
+                $textChunks[] = $part['text'];
+            }
         }
-        if (isset($part['text']) && is_string($part['text'])) {
-            $textChunks[] = $part['text'];
-        }
+        $rawText = trim(implode("\n", $textChunks));
     }
 
-    $rawText = trim(implode("\n", $textChunks));
     if ($rawText === '') {
-        $reason = $candidate['finishReason'] ?? ($decoded['promptFeedback']['blockReason'] ?? 'sin contenido');
+        $reason = $decoded['error']['message']
+            ?? ($decoded['status'] ?? ($decoded['candidates'][0]['finishReason'] ?? ($decoded['promptFeedback']['blockReason'] ?? 'sin contenido')));
         return [null, 'La respuesta de Gemini llegó vacía (' . $reason . ').'];
     }
 
@@ -333,26 +394,46 @@ $parseGeminiJson = static function (array $decoded): array {
     return [null, 'La respuesta de Gemini no devolvió un JSON válido.'];
 };
 
-for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
-    $currentKey = $apiKeys[$attempt % count($apiKeys)];
-    $requestUrl = $endpoint . '?key=' . urlencode($currentKey);
-
-    $ch = curl_init($requestUrl);
+$executePost = static function (string $url, array $headers, string $body): array {
+    $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 45,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'x-goog-api-key: ' . $currentKey
-        ],
-        CURLOPT_POSTFIELDS => $encodedBody
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_POSTFIELDS => $body
     ]);
-
     $responseBody = curl_exec($ch);
     $curlError = curl_error($ch);
     $httpStatus = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
+    return [$responseBody, $curlError, $httpStatus];
+};
+
+for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+    $currentKey = $apiKeys[$attempt % count($apiKeys)];
+
+    [$responseBody, $curlError, $httpStatus] = $executePost(
+        $interactionsEndpoint,
+        [
+            'Content-Type: application/json',
+            'x-goog-api-key: ' . $currentKey,
+            'Api-Revision: ' . $apiRevision
+        ],
+        $encodedInteractions
+    );
+
+    // Fallback a generateContent si Interactions API devuelve 400 o 404 de ruta/esquema
+    if ($responseBody !== false && ($httpStatus === 400 || $httpStatus === 404)) {
+        [$responseBody, $curlError, $httpStatus] = $executePost(
+            $generateContentEndpoint . '?key=' . urlencode($currentKey),
+            [
+                'Content-Type: application/json',
+                'x-goog-api-key: ' . $currentKey
+            ],
+            $encodedGenerateContent
+        );
+    }
 
     $lastHttpStatus = $httpStatus;
 

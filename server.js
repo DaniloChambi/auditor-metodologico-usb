@@ -7,7 +7,9 @@ const crypto = require('node:crypto');
 
 const ROOT_DIR = __dirname;
 const PORT = Number(process.env.PORT) || 3000;
-const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const DEFAULT_MODEL = 'gemini-3.8-flash';
+const INTERACTIONS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/interactions';
+const API_REVISION = '2026-05-20';
 
 const SYSTEM_INSTRUCTION = `Eres el Auditor Metodológico Estricto de Ingeniería de Sistemas (Guía Talleres de Grado USB 2026). Evalúa con alto rigor académico.
 REGLAS DE PENALIZACIÓN:
@@ -105,16 +107,40 @@ const getApiKeysPool = () => {
 };
 
 const parseGeminiJson = (data) => {
-  const candidate = data?.candidates?.[0];
-  const parts = Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [];
-  const rawText = parts
-    .filter((p) => p && !p.thought && typeof p.text === 'string')
-    .map((p) => p.text)
-    .join('\n')
-    .trim();
+  let rawText = '';
+
+  // 1. Interactions API format (output_text or steps[].content[].text)
+  if (typeof data?.output_text === 'string' && data.output_text.trim() !== '') {
+    rawText = data.output_text.trim();
+  } else if (Array.isArray(data?.steps)) {
+    const stepTexts = [];
+    for (const step of data.steps) {
+      if (!step || step.type !== 'model_output' || !Array.isArray(step.content)) continue;
+      for (const block of step.content) {
+        if (block && typeof block.text === 'string' && (!block.type || block.type === 'text')) {
+          stepTexts.push(block.text);
+        }
+      }
+    }
+    rawText = stepTexts.join('\n').trim();
+  } else {
+    // 2. Classic generateContent format (candidates[0].content.parts[])
+    const candidate = data?.candidates?.[0];
+    const parts = Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [];
+    rawText = parts
+      .filter((p) => p && !p.thought && typeof p.text === 'string')
+      .map((p) => p.text)
+      .join('\n')
+      .trim();
+  }
 
   if (!rawText) {
-    const reason = candidate?.finishReason || data?.promptFeedback?.blockReason || 'sin contenido';
+    const reason =
+      data?.error?.message ||
+      data?.status ||
+      data?.candidates?.[0]?.finishReason ||
+      data?.promptFeedback?.blockReason ||
+      'sin contenido';
     return { parsed: null, error: `La respuesta de Gemini llegó vacía (${reason}).` };
   }
 
@@ -289,18 +315,63 @@ const handleEvaluate = async (req, res) => {
     return;
   }
 
-  const geminiPayload = {
+  const modelName = getEnv('GEMINI_MODEL', DEFAULT_MODEL);
+  const userPromptText = buildUserPrompt(cleanData);
+
+  const requiredSchemaFields = [
+    'total_score',
+    'block1_score', 'block1_feedback',
+    'block2_score', 'block2_feedback',
+    'block3_score', 'block3_feedback',
+    'block4_score', 'block4_feedback',
+    'critical_fixes_needed',
+    'approved'
+  ];
+
+  const interactionsPayload = {
+    model: modelName,
+    system_instruction: SYSTEM_INSTRUCTION,
+    input: userPromptText,
+    generation_config: {
+      thinking_level: 'low'
+    },
+    response_format: {
+      type: 'text',
+      mime_type: 'application/json',
+      schema: {
+        type: 'object',
+        properties: {
+          total_score: { type: 'integer' },
+          block1_score: { type: 'integer' },
+          block1_feedback: { type: 'string' },
+          block2_score: { type: 'integer' },
+          block2_feedback: { type: 'string' },
+          block3_score: { type: 'integer' },
+          block3_feedback: { type: 'string' },
+          block4_score: { type: 'integer' },
+          block4_feedback: { type: 'string' },
+          critical_fixes_needed: {
+            type: 'array',
+            items: { type: 'string' }
+          },
+          approved: { type: 'boolean' }
+        },
+        required: requiredSchemaFields
+      }
+    }
+  };
+
+  const generateContentPayload = {
     systemInstruction: {
       parts: [{ text: SYSTEM_INSTRUCTION }]
     },
     contents: [
       {
         role: 'user',
-        parts: [{ text: buildUserPrompt(cleanData) }]
+        parts: [{ text: userPromptText }]
       }
     ],
     generationConfig: {
-      temperature: 0.15,
       responseMimeType: 'application/json',
       responseSchema: {
         type: 'OBJECT',
@@ -320,17 +391,23 @@ const handleEvaluate = async (req, res) => {
           },
           approved: { type: 'BOOLEAN' }
         },
-        required: [
-          'total_score',
-          'block1_score', 'block1_feedback',
-          'block2_score', 'block2_feedback',
-          'block3_score', 'block3_feedback',
-          'block4_score', 'block4_feedback',
-          'critical_fixes_needed',
-          'approved'
-        ]
+        required: requiredSchemaFields
       }
     }
+  };
+
+  const generateContentEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:generateContent`;
+
+  const extractApiError = async (response) => {
+    const errRaw = await response.text().catch(() => '');
+    let apiMsg = '';
+    try {
+      const errJson = JSON.parse(errRaw);
+      apiMsg = errJson?.error?.message || '';
+    } catch {
+      apiMsg = errRaw.slice(0, 240).trim();
+    }
+    return `HTTP ${response.status} al consultar Gemini API${apiMsg ? `: ${apiMsg}` : '.'}`;
   };
 
   const maxAttempts = 3;
@@ -341,17 +418,32 @@ const handleEvaluate = async (req, res) => {
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const apiKey = apiKeys[attempt % apiKeys.length];
-    const requestUrl = `${GEMINI_ENDPOINT}?key=${encodeURIComponent(apiKey)}`;
     try {
-      const response = await fetch(requestUrl, {
+      let response = await fetch(INTERACTIONS_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey
+          'x-goog-api-key': apiKey,
+          'Api-Revision': API_REVISION
         },
-        body: JSON.stringify(geminiPayload),
+        body: JSON.stringify(interactionsPayload),
         signal: AbortSignal.timeout(45000)
       });
+
+      // Fallback a generateContent si Interactions API devuelve 400 o 404 de ruta/esquema
+      if (response.status === 400 || response.status === 404) {
+        const interactionsErr = await extractApiError(response);
+        console.warn('[Auditor USB][Interactions Fallback]', interactionsErr);
+        response = await fetch(`${generateContentEndpoint}?key=${encodeURIComponent(apiKey)}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey
+          },
+          body: JSON.stringify(generateContentPayload),
+          signal: AbortSignal.timeout(45000)
+        });
+      }
 
       lastStatus = response.status;
       if (response.ok) {
@@ -363,15 +455,7 @@ const handleEvaluate = async (req, res) => {
         }
         lastError = error;
       } else {
-        const errRaw = await response.text().catch(() => '');
-        let apiMsg = '';
-        try {
-          const errJson = JSON.parse(errRaw);
-          apiMsg = errJson?.error?.message || '';
-        } catch {
-          apiMsg = errRaw.slice(0, 240).trim();
-        }
-        lastError = `HTTP ${response.status} al consultar Gemini API${apiMsg ? `: ${apiMsg}` : '.'}`;
+        lastError = await extractApiError(response);
       }
     } catch (err) {
       lastStatus = 0;
